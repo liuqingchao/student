@@ -1,0 +1,255 @@
+<link rel="stylesheet" href="assets/css/jquery-ui.min.css" />
+<link rel="stylesheet" href="assets/css/datepicker.min.css" />
+<link rel="stylesheet" href="assets/css/ui.jqgrid.min.css" />
+<!-- ajax layout which only needs content area -->
+<div class="page-header">
+	<h1>
+		学生信息
+	</h1>
+</div><!-- /.page-header -->
+
+<div class="row">
+	<div class="col-xs-12">
+
+		<table id="grid-table"></table>
+
+		<div id="grid-pager"></div>
+
+		<script type="text/javascript">
+			var $path_base = "../..";//in Ace demo this will be used for editurl parameter
+		</script>
+
+		<!-- PAGE CONTENT ENDS -->
+	</div><!-- /.col -->
+</div><!-- /.row -->
+<div id="import-modal-form" class="modal" tabindex="-1">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<form class="form-horizontal" id="import-form" enctype="multipart/form-data">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal">&times;</button>
+				<h4 class="blue bigger">导入Excel文件</h4>
+			</div>
+			<div class="modal-body">
+				<div class="row">
+					<div class="col-xs-12">
+						<div class="form-group">
+							<label class="col-sm-3 control-label no-padding-right" for="stu_excel"> Excel文件 </label>
+							<div class="col-sm-9">
+								<input type="file" id="stu_excel" name="file"/>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="alert alert-success hidden">
+					<strong>
+						<i class="ace-icon fa fa-check"></i>
+						Well done!
+					</strong>
+
+					You successfully read this important alert message.
+					<br />
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button class="btn btn-sm" data-dismiss="modal">
+					<i class="ace-icon fa fa-times"></i>
+					取消
+				</button>
+
+				<button class="btn btn-sm btn-primary" type="submit">
+					<i class="ace-icon fa fa-check"></i>
+					上传
+				</button>
+			</div>
+			</form>
+		</div>
+	</div>
+</div>
+<!-- page specific plugin scripts -->
+<script type="text/javascript">
+var scripts = [null,"assets/js/jquery.form.min.js","assets/js/jqGrid/jquery.jqGrid.min.js","assets/js/jqGrid/i18n/grid.locale-cn.js", null]
+$('.page-content-area').ace_ajax('loadScripts', scripts, function() {
+	jQuery(function($) {
+		var grid_selector = "#grid-table";
+		var pager_selector = "#grid-pager";
+		
+		//resize to fit page size
+		$(window).on('resize.jqGrid', function () {
+			$(grid_selector).jqGrid( 'setGridWidth', $(".page-content").width() );
+	    })
+		//resize on sidebar collapse/expand
+		var parent_column = $(grid_selector).closest('[class*="col-"]');
+		$(document).on('settings.ace.jqGrid' , function(ev, event_name, collapsed) {
+			if( event_name === 'sidebar_collapsed' || event_name === 'main_container_fixed' ) {
+				//setTimeout is for webkit only to give time for DOM changes and then redraw!!!
+				setTimeout(function() {
+					$(grid_selector).jqGrid( 'setGridWidth', parent_column.width() );
+				}, 0);
+			}
+	    })
+		jQuery(grid_selector).jqGrid({
+			url: "student",
+			datatype: "json",
+			mtype: "GET",
+			height: 330,
+			colNames:['学号','身份证号', '姓名','性别', '导入时间','操作员'],
+			colModel:[
+				{name:'studentId',index:'studentId', width:90, editable:false,searchoptions:{sopt:['eq','ne','cn','nc']}},
+				{name:'idCardNum',index:'idCardNum', width:90, editable:false,searchoptions:{sopt:['eq','ne','cn','nc']}},
+				{name:'name',index:'name', width:90, editable: false,searchoptions:{sopt:['eq','ne','cn','nc']}},
+				{name:'sex',index:'sex', width:90, editable: false,formatter:function(v){return ['女','男','其他'][v];} ,stype:'select',searchoptions:{value:{"1":"男","0":"女","2":"其他"},sopt:['eq','ne']}},
+				{name:'createdDate',index:'createdDate', width:100, editable: false, search:false},
+				{name:'createdBy.userName',index:'createdBy', width:90,editable: true, search:false}
+			], 
+			rownumbers: true,
+			viewrecords : true,
+			rowNum:10,
+			rowList:[10,20,30],
+			pager : pager_selector,
+			altRows: true,
+			loadComplete : function() {
+				var table = this;
+				setTimeout(function(){
+					updatePagerIcons(table);
+					enableTooltips(table);
+				}, 0);
+			},
+			caption: "学生信息列表",
+			jsonReader: {
+				root: "rows", 
+				page: "page", 
+				total: "total", 
+				records: "records",
+				id: "studentId",
+				repeatitems:false
+			}
+		});
+		$(window).triggerHandler('resize.jqGrid');//trigger window resize to make the grid get the correct size
+		$("#jqgh_grid-table_cb").attr("style","padding-left:4px;margin-bottom:20px;");
+		//enable datepicker
+		//navButtons
+		jQuery(grid_selector).jqGrid('navGrid',pager_selector,
+			{ 	//navbar options
+				edit: false,
+				add: false,
+				del: false,
+				search: true,
+				searchicon : 'ace-icon fa fa-search orange',
+				refresh: true,
+				refreshicon : 'ace-icon fa fa-refresh green'
+			}, {
+				
+			}, {
+				
+			}, {
+				
+			}, {
+				//search form
+				recreateForm: true,
+				afterShowSearch: function(e){
+					var form = $(e[0]);
+					form.closest('.ui-jqdialog').find('.ui-jqdialog-title').wrap('<div class="widget-header" />')
+					style_search_form(form);
+				},
+				afterRedraw: function(){
+					style_search_filters($(this));
+				},
+				multipleSearch: true
+			}, {
+			
+			}
+		).navSeparatorAdd(pager_selector).navButtonAdd(pager_selector,{
+			caption:"", 
+			title:"导入Excel",
+			buttonicon:"ace-icon fa fa-upload purple", 
+			onClickButton: function(){
+				$("#import-modal-form").show();
+				$('#stu_excel').ace_file_input({
+					no_file:'请选择 ...',
+					btn_choose:'选择',
+					btn_change:'重选',
+					droppable:false,
+					onchange:null,
+					thumbnail:false,
+					allowExt:['xls']
+					//onchange:''
+					//
+				});
+				var validator = $('#import-form').validate({
+					errorClass: 'form-error',
+					rules: {
+						stu_excel: {
+							required: true
+						}
+					},
+					messages: {
+						stu_excel: {
+							required: "请选择Excel文件."
+						}
+					},
+					submitHandler: function(form) {
+						$(form).ajaxSubmit({
+					        type:"post",
+					        url:"student",
+					        dataType:"json",
+					        success: function(result){
+					        	if(result.success) {
+					        		
+					        	} else {
+					        		validator.showErrors({
+					        			stu_excel: result.info.msg
+									});
+					        	}
+					        }
+					      });
+					}  
+				});
+			}, 
+			position:"last"
+		});
+		
+		function style_search_filters(form) {
+			form.find('.delete-rule').val('X');
+			form.find('.add-rule').addClass('btn btn-xs btn-primary');
+			form.find('.add-group').addClass('btn btn-xs btn-success');
+			form.find('.delete-group').addClass('btn btn-xs btn-danger');
+		}
+		function style_search_form(form) {
+			var dialog = form.closest('.ui-jqdialog');
+			var buttons = dialog.find('.EditTable')
+			buttons.find('.EditButton a[id*="_reset"]').addClass('btn btn-sm btn-info').find('.ui-icon').attr('class', 'ace-icon fa fa-retweet');
+			buttons.find('.EditButton a[id*="_query"]').addClass('btn btn-sm btn-inverse').find('.ui-icon').attr('class', 'ace-icon fa fa-comment-o');
+			buttons.find('.EditButton a[id*="_search"]').addClass('btn btn-sm btn-purple').find('.ui-icon').attr('class', 'ace-icon fa fa-search');
+		}
+		
+		//replace icons with FontAwesome icons like above
+		function updatePagerIcons(table) {
+			var replacement = 
+			{
+				'ui-icon-seek-first' : 'ace-icon fa fa-angle-double-left bigger-140',
+				'ui-icon-seek-prev' : 'ace-icon fa fa-angle-left bigger-140',
+				'ui-icon-seek-next' : 'ace-icon fa fa-angle-right bigger-140',
+				'ui-icon-seek-end' : 'ace-icon fa fa-angle-double-right bigger-140'
+			};
+			$('.ui-pg-table:not(.navtable) > tbody > tr > .ui-pg-button > .ui-icon').each(function(){
+				var icon = $(this);
+				var $class = $.trim(icon.attr('class').replace('ui-icon', ''));
+				
+				if($class in replacement) icon.attr('class', 'ui-icon '+replacement[$class]);
+			})
+		}
+	
+		function enableTooltips(table) {
+			$('.navtable .ui-pg-button').tooltip({container:'body'});
+			$(table).find('.ui-pg-div').tooltip({container:'body'});
+		}
+		
+		$(document).one('ajaxloadstart.page', function(e) {
+			$(grid_selector).jqGrid('GridUnload');
+			$('.ui-jqdialog').remove();
+		});
+	});
+});
+
+</script>

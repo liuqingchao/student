@@ -1,0 +1,254 @@
+<link rel="stylesheet" href="assets/css/jquery-ui.min.css" />
+<link rel="stylesheet" href="assets/css/datepicker.min.css" />
+<link rel="stylesheet" href="assets/css/ui.jqgrid.min.css" />
+
+<!-- ajax layout which only needs content area -->
+<div class="page-header">
+	<h1>
+		操作日志查询
+	</h1>
+</div><!-- /.page-header -->
+
+<div class="row">
+	<div class="col-xs-12">
+		<!-- PAGE CONTENT BEGINS -->
+
+		<table id="grid-table"></table>
+
+		<div id="grid-pager"></div>
+
+		<script type="text/javascript">
+			var $path_base = "../..";//in Ace demo this will be used for editurl parameter
+		</script>
+
+		<!-- PAGE CONTENT ENDS -->
+	</div><!-- /.col -->
+</div><!-- /.row -->
+<div id="modal-form-log" class="modal" tabindex="-1">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<form class="form-horizontal">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal">&times;</button>
+				<h4 class="blue bigger">授权详情</h4>
+			</div>
+			<div class="modal-body">
+				<div class="row">
+					<div class="col-xs-12 col-sm-6">
+						<div class="form-group">
+							<label class="col-sm-3 control-label no-padding-right"> 版本号:</label>
+							<label class="col-sm-3 control-label no-padding-left" id="versionNo">  </label>
+						</div>
+						<div class="form-group">
+							<label class="col-sm-3 control-label no-padding-right"> 服务器:</label>
+							<label class="col-sm-3 control-label no-padding-left" id="serverCode">  </label>
+						</div>
+						<div class="form-group">
+							<label class="col-sm-3 control-label no-padding-right"> 注册码:</label>
+							<label class="col-sm-3 control-label no-padding-left" id="registrationCode">  </label>
+						</div>
+						<div class="form-group">
+							<label class="col-sm-4 control-label no-padding-right"> 最大并发数:</label>
+							<label class="col-sm-2 control-label no-padding-left" id="maxConcurrency">  </label>
+						</div>
+						<div class="form-group">
+							<label class="col-sm-3 control-label no-padding-right"> 授权期限:</label>
+							<label class="col-sm-3 control-label no-padding-left" id="licenseEndTime">  </label>
+						</div>
+					</div>
+					<div class="col-xs-12 col-sm-6">
+						<div class="form-group">
+							<label class="col-sm-3 control-label no-padding-right"> 运营商:</label>
+							<label class="col-sm-4 control-label no-padding-left" id="partnerName">  </label>
+						</div>
+						<div class="form-group">
+							<label class="col-sm-3 control-label no-padding-right"> 网元:</label>
+							<label class="col-sm-3 control-label no-padding-left" id="neCode">  </label>
+						</div>
+						<div class="form-group">
+							<label class="col-sm-3 control-label no-padding-right"> 激活码:</label>
+							<label class="col-sm-3 control-label no-padding-left" id="activationUrl">  </label>
+						</div>
+						<div class="form-group">
+							<label class="col-sm-3 control-label no-padding-right"> 最大带宽:</label>
+							<label class="col-sm-3 control-label no-padding-left" id="maxBandWidth">  </label>
+						</div>
+						<div class="form-group">
+							<label class="col-sm-3 control-label no-padding-right"> 状态:</label>
+							<label class="col-sm-3 control-label no-padding-left" id="status">  </label>
+						</div>
+					</div>
+					<div class="col-xs-12 col-sm-6">
+						<div class="form-group">
+							<label class="col-sm-3 control-label no-padding-right"> 创建日期:</label>
+							<label class="col-sm-6 control-label no-padding-left" id="createdDate">  </label>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button class="btn btn-sm" data-dismiss="modal">
+					<i class="ace-icon fa fa-times"></i>
+					关闭
+				</button>
+			</div>
+			</form>
+		</div>
+	</div>
+</div>
+<!-- page specific plugin scripts -->
+<script type="text/javascript">
+var scripts = [null,"assets/js/date-time/bootstrap-datepicker.min.js","assets/js/date-time/bootstrap-datepicker.zh-CN.min.js","assets/js/jqGrid/jquery.jqGrid.min.js","assets/js/jqGrid/i18n/grid.locale-cn.js", null]
+$('.page-content-area').ace_ajax('loadScripts', scripts, function() {
+	  //inline scripts related to this page
+	jQuery(function($) {
+		var grid_selector = "#grid-table";
+		var pager_selector = "#grid-pager";
+		
+		//resize to fit page size
+		$(window).on('resize.jqGrid', function () {
+			$(grid_selector).jqGrid( 'setGridWidth', $(".page-content").width() );
+	    })
+		//resize on sidebar collapse/expand
+		var parent_column = $(grid_selector).closest('[class*="col-"]');
+		$(document).on('settings.ace.jqGrid' , function(ev, event_name, collapsed) {
+			if( event_name === 'sidebar_collapsed' || event_name === 'main_container_fixed' ) {
+				//setTimeout is for webkit only to give time for DOM changes and then redraw!!!
+				setTimeout(function() {
+					$(grid_selector).jqGrid( 'setGridWidth', parent_column.width() );
+				}, 0);
+			}
+	    })
+		var userGrid = jQuery(grid_selector).jqGrid({
+			url: 'user_log',
+			datatype: "json",
+			mtype: "GET",
+			height: 390,
+			colNames:['操作员代码','操作员名称','操作类型', '授权日期', '授权版本', '网元名称', '授权详情'],
+			colModel:[
+				{name:'userCode',index:'userCode',width:90, sortable:false},
+				{name:'userName',index:'userName', width:100, sortable:false},
+				{name:'operateType',index:'operateType', width:90,stype:'select',searchoptions:{defaultValue:1,value: {0:'授权',1:'取消授权'},sopt:['eq','ne'] }, formatter:function(v){return ['授权','取消授权'][v];}},
+				{name:'authDate',index:'authDate',width:90, sorttype:"date",searchoptions:{dataInit :function (elem) {$(elem).datepicker({language: 'zh-CN', format:'yyyy-mm-dd' , autoclose:true, todayHighlight: true});},sopt:['eq','ne','lt','le','gt','ge']}},
+				{name:'versionNo',index:'versionNo', width:90, sortable:false,search:false},
+				{name:'neCode',index:'neCode', width:90, sortable:false,search:false},
+				{name:'authId',index:'authId', width:90, sortable:false,search:false, formatter:function(val){return '<a href="#modal-form-log" data-toggle="modal" onclick="showDetail('+val+')">详情</a>';}}
+			],
+			rownumbers: true,
+			viewrecords : true,
+			rowNum:10,
+			rowList:[10,20,30],
+			pager : pager_selector,
+			altRows: true,
+			multiselect: false,
+			loadComplete : function() {
+				var table = this;
+				setTimeout(function(){
+					updatePagerIcons(table);
+					enableTooltips(table);
+				}, 0);
+			},
+			caption: "操作日志列表",
+			jsonReader: {
+				root: "rows", 
+				page: "page", 
+				total: "total", 
+				records: "records",
+				repeatitems:false
+			}
+		});
+		$(window).triggerHandler('resize.jqGrid');//trigger window resize to make the grid get the correct size
+	
+		//navButtons
+		jQuery(grid_selector).jqGrid('navGrid',pager_selector, {
+				//navbar options
+				add:false,
+				edit:false,
+				del:false,
+				search: true,
+				searchicon : 'ace-icon fa fa-search orange',
+				refresh: true,
+				refreshicon : 'ace-icon fa fa-refresh green',
+				view: false
+			}, {
+			}, {
+			}, {
+			}, {
+				//search form
+				recreateForm: true,
+				afterShowSearch: function(e){
+					var form = $(e[0]);
+					form.closest('.ui-jqdialog').find('.ui-jqdialog-title').wrap('<div class="widget-header" />')
+					style_search_form(form);
+				},
+				closeAfterSearch: true,
+				afterRedraw: function(){
+					style_search_filters($(this));
+				},
+				multipleSearch: true
+			}, {
+				//view record form
+				recreateForm: true,
+				beforeShowForm: function(e){
+					var form = $(e[0]);
+					form.closest('.ui-jqdialog').find('.ui-jqdialog-title').wrap('<div class="widget-header" />')
+				}
+			}
+		)
+		
+		function style_search_filters(form) {
+			form.find('.delete-rule').val('X');
+			form.find('.add-rule').addClass('btn btn-xs btn-primary');
+			form.find('.add-group').addClass('btn btn-xs btn-success');
+			form.find('.delete-group').addClass('btn btn-xs btn-danger');
+		}
+		function style_search_form(form) {
+			var dialog = form.closest('.ui-jqdialog');
+			var buttons = dialog.find('.EditTable')
+			buttons.find('.EditButton a[id*="_reset"]').addClass('btn btn-sm btn-info').find('.ui-icon').attr('class', 'ace-icon fa fa-retweet');
+			buttons.find('.EditButton a[id*="_query"]').addClass('btn btn-sm btn-inverse').find('.ui-icon').attr('class', 'ace-icon fa fa-comment-o');
+			buttons.find('.EditButton a[id*="_search"]').addClass('btn btn-sm btn-purple').find('.ui-icon').attr('class', 'ace-icon fa fa-search');
+		}
+		
+		//replace icons with FontAwesome icons like above
+		function updatePagerIcons(table) {
+			var replacement = 
+			{
+				'ui-icon-seek-first' : 'ace-icon fa fa-angle-double-left bigger-140',
+				'ui-icon-seek-prev' : 'ace-icon fa fa-angle-left bigger-140',
+				'ui-icon-seek-next' : 'ace-icon fa fa-angle-right bigger-140',
+				'ui-icon-seek-end' : 'ace-icon fa fa-angle-double-right bigger-140'
+			};
+			$('.ui-pg-table:not(.navtable) > tbody > tr > .ui-pg-button > .ui-icon').each(function(){
+				var icon = $(this);
+				var $class = $.trim(icon.attr('class').replace('ui-icon', ''));
+				
+				if($class in replacement) icon.attr('class', 'ui-icon '+replacement[$class]);
+			})
+		}
+	
+		function enableTooltips(table) {
+			$('.navtable .ui-pg-button').tooltip({container:'body'});
+			$(table).find('.ui-pg-div').tooltip({container:'body'});
+		}
+	
+		$(document).one('ajaxloadstart.page', function(e) {
+			$(grid_selector).jqGrid('GridUnload');
+			$('.ui-jqdialog').remove();
+		});
+	});
+});
+function showDetail(authId) {
+	$.get('auth/'+authId, function(res){
+		if (res.success) {
+			$.each(res.info,function(key,val){
+				if (key=="status") {
+					$("#status").text(["无效","有效"][val]);
+				} else {
+					$("#"+key).text(val);
+				}
+			});
+		}
+	},'json');
+}
+</script>

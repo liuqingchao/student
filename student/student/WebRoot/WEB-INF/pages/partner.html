@@ -1,0 +1,250 @@
+<link rel="stylesheet" href="assets/css/jquery-ui.min.css" />
+<link rel="stylesheet" href="assets/css/datepicker.min.css" />
+<link rel="stylesheet" href="assets/css/ui.jqgrid.min.css" />
+
+<!-- ajax layout which only needs content area -->
+<div class="page-header">
+	<h1>
+		运营商管理
+	</h1>
+</div><!-- /.page-header -->
+
+<div class="row">
+	<div class="col-xs-12">
+		<!-- PAGE CONTENT BEGINS -->
+
+		<table id="grid-table"></table>
+
+		<div id="grid-pager"></div>
+
+		<script type="text/javascript">
+			var $path_base = "../..";//in Ace demo this will be used for editurl parameter
+		</script>
+
+		<!-- PAGE CONTENT ENDS -->
+	</div><!-- /.col -->
+</div><!-- /.row -->
+
+<!-- page specific plugin scripts -->
+<script type="text/javascript">
+	var scripts = [null,"assets/js/jqGrid/jquery.jqGrid.min.js","assets/js/jqGrid/i18n/grid.locale-cn.js", null]
+	$('.page-content-area').ace_ajax('loadScripts', scripts, function() {
+	  //inline scripts related to this page
+	jQuery(function($) {
+		var grid_selector = "#grid-table";
+		var pager_selector = "#grid-pager";
+		
+		//resize to fit page size
+		$(window).on('resize.jqGrid', function () {
+			$(grid_selector).jqGrid( 'setGridWidth', $(".page-content").width() );
+	    })
+		//resize on sidebar collapse/expand
+		var parent_column = $(grid_selector).closest('[class*="col-"]');
+		$(document).on('settings.ace.jqGrid' , function(ev, event_name, collapsed) {
+			if( event_name === 'sidebar_collapsed' || event_name === 'main_container_fixed' ) {
+				//setTimeout is for webkit only to give time for DOM changes and then redraw!!!
+				setTimeout(function() {
+					$(grid_selector).jqGrid( 'setGridWidth', parent_column.width() );
+				}, 0);
+			}
+	    })
+		var userGrid = jQuery(grid_selector).jqGrid({
+			url: 'partner',
+			datatype: "json",
+			mtype: "GET",
+			height: 390,
+			colNames:['','运营商代码','运营商名称', '创建日期', '备注'],
+			colModel:[
+				{name:'partnerId',index:'partnerId',hidden:true, editable:true},
+				{name:'partnerCode',index:'partnerCode',width:90, editable:true,editoptions:{size:"20",maxlength:"64"},editrules:{required:true,custom:true,custom_func:function(val,colName){var patrn = /^[A-Za-z0-9_]+$/;if(!patrn.test(val)) return [false,"运营商代码:必须为数字或字母"];return [true];}}},
+				{name:'partnerName',index:'partnerName', width:150,editable: true,editoptions:{size:"20",maxlength:"64"},editrules:{required:true}},
+				{name:'createdDate',index:'createdDate',width:90,search:false},
+				{name:'partnerDesc',index:'partnerDesc', width:150, sortable:false,editable: true,edittype:"textarea", editoptions:{style:"width:180px",rows:"2",cols:"10",maxlength:"256"},search:false}
+			],
+			rownumbers: true,
+			viewrecords : true,
+			rowNum:10,
+			rowList:[10,20,30],
+			pager : pager_selector,
+			altRows: true,
+			multiselect: true,
+	        multiboxonly: true,
+			loadComplete : function() {
+				var table = this;
+				setTimeout(function(){
+					updatePagerIcons(table);
+					enableTooltips(table);
+				}, 0);
+			},
+			editurl: "partner",
+			caption: "运营商列表",
+			jsonReader: {
+				root: "rows", 
+				page: "page", 
+				total: "total", 
+				records: "records",
+				id: "partnerId",
+				repeatitems:false
+			}
+		});
+		$(window).triggerHandler('resize.jqGrid');//trigger window resize to make the grid get the correct size
+		$("#jqgh_grid-table_cb").attr("style","padding-left:4px;margin-bottom:20px;");
+		//enable datepicker
+		function pickDate( cellvalue, options, cell ) {
+			setTimeout(function(){
+				$(cell) .find('input[type=text]')
+						.datepicker({format:'yyyy-mm-dd' , autoclose:true}); 
+			}, 0);
+		}
+	
+	
+		//navButtons
+		jQuery(grid_selector).jqGrid('navGrid',pager_selector, {
+				//navbar options
+				edit: true,
+				editicon : 'ace-icon fa fa-pencil blue',
+				add: true,
+				addicon : 'ace-icon fa fa-plus-circle purple',
+				del: true,
+				delicon : 'ace-icon fa fa-trash-o red',
+				search: true,
+				searchicon : 'ace-icon fa fa-search orange',
+				refresh: true,
+				refreshicon : 'ace-icon fa fa-refresh green',
+				view: false,
+				viewicon : 'ace-icon fa fa-search-plus grey',
+			}, {
+				//edit record form
+				modal:true,
+				recreateForm: true,
+				beforeShowForm : function(e) {
+					var form = $(e[0]);
+					form.closest('.ui-jqdialog').find('.ui-jqdialog-titlebar').wrapInner('<div class="widget-header" />')
+					style_edit_form(form);
+				},
+				afterSubmit:function(res){
+					var result = $.parseJSON(res.responseText);
+					return [result.success,result.info?result.info.msg:null];
+				}
+			}, {
+				//new record form
+				modal:true,
+				closeAfterAdd: true,
+				recreateForm: true,
+				viewPagerButtons: false,
+				beforeShowForm : function(e) {
+					var form = $(e[0]);
+					form.closest('.ui-jqdialog').find('.ui-jqdialog-titlebar').wrapInner('<div class="widget-header" />');
+					style_edit_form(form);
+				},
+				afterSubmit:function(res){
+					var result = $.parseJSON(res.responseText);
+					return [result.success,result.info?result.info.msg:null];
+				}
+			}, {
+				//delete record form
+				modal:true,
+				recreateForm: true,
+				beforeShowForm : function(e) {
+					var form = $(e[0]);
+					if(form.data('styled')) return false;
+					
+					form.closest('.ui-jqdialog').find('.ui-jqdialog-titlebar').wrapInner('<div class="widget-header" />')
+					style_delete_form(form);
+					
+					form.data('styled', true);
+				},
+				afterSubmit:function(res){
+					var result = $.parseJSON(res.responseText);
+					return [result.success,result.info?result.info.msg:null];
+				}
+			}, {
+				//search form
+				recreateForm: true,
+				afterShowSearch: function(e){
+					var form = $(e[0]);
+					form.closest('.ui-jqdialog').find('.ui-jqdialog-title').wrap('<div class="widget-header" />')
+					style_search_form(form);
+				},
+				closeAfterSearch: true,
+				afterRedraw: function(){
+					style_search_filters($(this));
+				},
+				multipleSearch: true
+			}, {
+				//view record form
+				recreateForm: true,
+				beforeShowForm: function(e){
+					var form = $(e[0]);
+					form.closest('.ui-jqdialog').find('.ui-jqdialog-title').wrap('<div class="widget-header" />')
+				}
+			}
+		)
+	
+	
+		
+		function style_edit_form(form) {
+			//update buttons classes
+			var buttons = form.next().find('.EditButton .fm-button');
+			buttons.addClass('btn btn-sm').find('[class*="-icon"]').hide();//ui-icon, s-icon
+			buttons.eq(0).addClass('btn-primary').prepend('<i class="ace-icon fa fa-check"></i>');
+			buttons.eq(1).prepend('<i class="ace-icon fa fa-times"></i>')
+			
+			buttons = form.next().find('.navButton a');
+			buttons.find('.ui-icon').hide();
+			buttons.eq(0).append('<i class="ace-icon fa fa-chevron-left"></i>');
+			buttons.eq(1).append('<i class="ace-icon fa fa-chevron-right"></i>');		
+		}
+	
+		function style_delete_form(form) {
+			var buttons = form.next().find('.EditButton .fm-button');
+			buttons.addClass('btn btn-sm btn-white btn-round').find('[class*="-icon"]').hide();//ui-icon, s-icon
+			buttons.eq(0).addClass('btn-danger').prepend('<i class="ace-icon fa fa-trash-o"></i>');
+			buttons.eq(1).addClass('btn-default').prepend('<i class="ace-icon fa fa-times"></i>')
+		}
+		
+		function style_search_filters(form) {
+			form.find('.delete-rule').val('X');
+			form.find('.add-rule').addClass('btn btn-xs btn-primary');
+			form.find('.add-group').addClass('btn btn-xs btn-success');
+			form.find('.delete-group').addClass('btn btn-xs btn-danger');
+		}
+		function style_search_form(form) {
+			var dialog = form.closest('.ui-jqdialog');
+			var buttons = dialog.find('.EditTable')
+			buttons.find('.EditButton a[id*="_reset"]').addClass('btn btn-sm btn-info').find('.ui-icon').attr('class', 'ace-icon fa fa-retweet');
+			buttons.find('.EditButton a[id*="_query"]').addClass('btn btn-sm btn-inverse').find('.ui-icon').attr('class', 'ace-icon fa fa-comment-o');
+			buttons.find('.EditButton a[id*="_search"]').addClass('btn btn-sm btn-purple').find('.ui-icon').attr('class', 'ace-icon fa fa-search');
+		}
+		
+		//replace icons with FontAwesome icons like above
+		function updatePagerIcons(table) {
+			var replacement = 
+			{
+				'ui-icon-seek-first' : 'ace-icon fa fa-angle-double-left bigger-140',
+				'ui-icon-seek-prev' : 'ace-icon fa fa-angle-left bigger-140',
+				'ui-icon-seek-next' : 'ace-icon fa fa-angle-right bigger-140',
+				'ui-icon-seek-end' : 'ace-icon fa fa-angle-double-right bigger-140'
+			};
+			$('.ui-pg-table:not(.navtable) > tbody > tr > .ui-pg-button > .ui-icon').each(function(){
+				var icon = $(this);
+				var $class = $.trim(icon.attr('class').replace('ui-icon', ''));
+				
+				if($class in replacement) icon.attr('class', 'ui-icon '+replacement[$class]);
+			})
+		}
+	
+		function enableTooltips(table) {
+			$('.navtable .ui-pg-button').tooltip({container:'body'});
+			$(table).find('.ui-pg-div').tooltip({container:'body'});
+		}
+	
+		//var selr = jQuery(grid_selector).jqGrid('getGridParam','selrow');
+	
+		$(document).one('ajaxloadstart.page', function(e) {
+			$(grid_selector).jqGrid('GridUnload');
+			$('.ui-jqdialog').remove();
+		});
+	});
+	});
+</script>

@@ -1,0 +1,123 @@
+
+<title>欢迎进入学生收费系统</title>
+
+<!-- ajax layout which only needs content area -->
+<div class="page-header">
+	<h1>
+		控制台
+		<small>
+			<i class="ace-icon fa fa-angle-double-right"></i>
+			概况 &amp; 统计
+		</small>
+	</h1>
+</div><!-- /.page-header -->
+
+<div class="row">
+	<div class="col-xs-12">
+
+		<div class="row">
+			<div class="space-6"></div>
+
+			<div class="col-sm-7 infobox-container">
+				<!-- #section:pages/dashboard.infobox -->
+				<div class="infobox infobox-green">
+					<div class="infobox-icon">
+						<i class="ace-icon fa fa-group"></i>
+					</div>
+
+					<div class="infobox-data">
+						<span class="infobox-data-number" id="partner_count">0</span>
+						<div class="infobox-content">运营商</div>
+					</div>
+
+					<!-- #section:pages/dashboard.infobox.stat -->
+					<div class="stat stat-success" id="partner_increment"></div>
+
+					<!-- /section:pages/dashboard.infobox.stat -->
+				</div>
+
+				<div class="infobox infobox-blue">
+					<div class="infobox-icon">
+						<i class="ace-icon fa fa-cloud"></i>
+					</div>
+
+					<div class="infobox-data">
+						<span class="infobox-data-number" id="server_count">0</span>
+						<div class="infobox-content">服务器</div>
+					</div>
+
+					<div class="stat stat-success" id="server_increment"></div>
+				</div>
+
+				<div class="infobox infobox-pink">
+					<div class="infobox-icon">
+						<i class="ace-icon fa fa-circle"></i>
+					</div>
+
+					<div class="infobox-data">
+						<span class="infobox-data-number" id="ne_count">0</span>
+						<div class="infobox-content">网元</div>
+					</div>
+					<div class="stat stat-success" id="ne_increment"></div>
+				</div>
+
+				<!-- /section:pages/dashboard.infobox.dark -->
+			</div>
+
+
+
+		<!-- PAGE CONTENT ENDS -->
+	</div><!-- /.col -->
+</div><!-- /.row -->
+
+<!-- page specific plugin scripts -->
+
+<!--[if lte IE 8]>
+  <script src="assets/js/excanvas.min.js"></script>
+<![endif]-->
+<script type="text/javascript">
+var scripts = [null,"assets/js/jquery.easypiechart.min.js", null]
+$('.page-content-area').ace_ajax('loadScripts', scripts, function() {
+	  //inline scripts related to this page
+	jQuery(function($) {
+		$('.easy-pie-chart.percentage').each(function(){
+			var $box = $(this).closest('.infobox');
+			var barColor = $(this).data('color') || (!$box.hasClass('infobox-dark') ? $box.css('color') : 'rgba(255,255,255,0.95)');
+			var trackColor = barColor == 'rgba(255,255,255,0.95)' ? 'rgba(255,255,255,0.25)' : '#E2E2E2';
+			var size = parseInt($(this).data('size')) || 50;
+			$(this).easyPieChart({
+				barColor: barColor,
+				trackColor: trackColor,
+				scaleColor: false,
+				lineCap: 'butt',
+				lineWidth: parseInt(size/10),
+				animate: /msie\s*(8|7|6)/.test(navigator.userAgent.toLowerCase()) ? false : 1000,
+				size: size
+			});
+		})
+	});
+	$.get('stat',function(res){
+		if (res.success) {
+			var stat = res.info;
+			$("#partner_count").text(stat.partners);
+			$("#server_count").text(stat.servers);
+			$("#ne_count").text(stat.nes);
+			if (stat.partnerIncre>0) {
+				$("#partner_increment").text(stat.partnerIncre + "%");
+			} else {
+				$("#partner_increment").hide();
+			}
+			if (stat.serverIncre>0) {
+				$("#server_increment").text(stat.serverIncre + "%");
+			} else {
+				$("#server_increment").hide();
+			}
+			if (stat.neIncre>0) {
+				$("#ne_increment").text(stat.neIncre + "%");
+			} else {
+				$("#ne_increment").hide();
+			}
+		}
+	},'json');
+});
+</script>

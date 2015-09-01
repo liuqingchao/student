@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+		<meta charset="utf-8" />
+		<title>欢迎进入学生收费系统</title>
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+		<link rel="shortcut icon" href="../assets/favicon.ico" type="image/x-icon" />
+		<!-- bootstrap & fontawesome -->
+		<link rel="stylesheet" href="../assets/css/bootstrap.min.css" />
+		<link rel="stylesheet" href="../assets/css/font-awesome.min.css" />
+		<link rel="stylesheet" href="../assets/css/jquery-ui.custom.min.css" />
+		<!-- text fonts -->
+		<link rel="stylesheet" href="../assets/css/ace-fonts.min.css" />
+
+		<!-- ace styles -->
+		<link rel="stylesheet" href="../assets/css/ace.min.css" class="ace-main-stylesheet" id="main-ace-style" />
+
+		<!--[if lte IE 9]>
+			<link rel="stylesheet" href="../assets/css/ace-part2.min.css" class="ace-main-stylesheet" />
+		<![endif]-->
+
+		<!--[if lte IE 9]>
+		  <link rel="stylesheet" href="../assets/css/ace-ie.min.css" />
+		<![endif]-->
+
+		<!-- ace settings handler -->
+		<script src="../assets/js/ace-extra.min.js"></script>
+
+		<!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+
+		<!--[if lte IE 8]>
+		<script src="../assets/js/html5shiv.min.js"></script>
+		<script src="../assets/js/respond.min.js"></script>
+		<![endif]-->
+	</head>
+<body class="no-skin" style="background-color: #fff">
+<div id="navbar" class="navbar navbar-default">
+			<script type="text/javascript">
+				try{ace.settings.check('navbar' , 'fixed')}catch(e){}
+			</script>
+
+			<div class="navbar-container" id="navbar-container">
+				<!-- #section:basics/sidebar.mobile.toggle -->
+				<button type="button" class="navbar-toggle menu-toggler pull-left" id="menu-toggler" data-target="#sidebar">
+					<span class="sr-only">Toggle sidebar</span>
+
+					<span class="icon-bar"></span>
+
+					<span class="icon-bar"></span>
+
+					<span class="icon-bar"></span>
+				</button>
+
+				<!-- /section:basics/sidebar.mobile.toggle -->
+				<div class="navbar-header pull-left">
+					<!-- #section:basics/navbar.layout.brand -->
+					<a href="#" class="navbar-brand">
+						<small>
+							<i class="fa fa-leaf"></i>
+							学生收费系统
+						</small>
+					</a>
+
+					<!-- /section:basics/navbar.layout.brand -->
+
+					<!-- #section:basics/navbar.toggle -->
+
+					<!-- /section:basics/navbar.toggle -->
+				</div>
+
+				<!-- #section:basics/navbar.dropdown -->
+				<div class="navbar-buttons navbar-header pull-right" role="navigation">
+					<ul class="nav ace-nav">
+						<!-- #section:basics/navbar.user_menu -->
+						<li class="light-blue">
+							<a data-toggle="dropdown" href="#" class="dropdown-toggle">
+								<img class="nav-user-photo" src="../assets/avatars/avatar2.png" alt="User's Photo" />
+								<span class="user-info">
+									<small>欢迎,</small>
+									<middle id="user-name"></middle>
+								</span>
+
+								<i class="ace-icon fa fa-caret-down"></i>
+							</a>
+
+							<ul class="user-menu dropdown-menu-right dropdown-menu dropdown-yellow dropdown-caret dropdown-close">
+								<li>
+									<a href="logout">
+										<i class="ace-icon fa fa-power-off"></i>
+										退出
+									</a>
+								</li>
+							</ul>
+						</li>
+
+						<!-- /section:basics/navbar.user_menu -->
+					</ul>
+				</div>
+
+				<!-- /section:basics/navbar.dropdown -->
+			</div><!-- /.navbar-container -->
+		</div>
+<div class="page-header">
+	<h1>
+		个人信息
+	</h1>
+</div><!-- /.page-header -->
+
+<div class="row">
+	<div class="col-xs-12">
+		<!-- PAGE CONTENT BEGINS -->
+		<div>
+			<div id="user-profile-1" class="user-profile row">
+				<div class="col-xs-12 col-sm-4 center">
+					<div class="space-4"></div>
+					<div>
+						<!-- #section:pages/profile.picture -->
+						<span class="profile-picture">
+							<img id="avatar" class="editable img-responsive" alt="Alex's Avatar" src="../assets/avatars/profile-pic.jpg" />
+						</span>
+
+						<!-- /section:pages/profile.picture -->
+						<div class="space-4"></div>
+
+						<div class="width-80 label label-info label-xlg arrowed-in arrowed-in-right">
+							<div class="inline position-relative">
+								<div class="user-title-label">
+									<i class="ace-icon fa fa-circle light-green"></i>
+									&nbsp;
+									<span class="white" id="sname">?</span>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="space-6"></div>
+
+					<!-- /section:pages/profile.contact -->
+					<div class="hr hr12 dotted"></div>
+				</div>
+
+				<div class="col-xs-12 col-sm-8">
+
+					<div class="space-12"></div>
+
+					<!-- #section:pages/profile.info -->
+					<div class="profile-user-info profile-user-info-striped">
+						<div class="profile-info-row">
+							<div class="profile-info-name"> 姓名 </div>
+
+							<div class="profile-info-value">
+								<span id="username">?</span>
+							</div>
+						</div>
+
+						<div class="profile-info-row">
+							<div class="profile-info-name"> 学号 </div>
+
+							<div class="profile-info-value">
+								<span id="sid">?</span>
+							</div>
+						</div>
+
+						<div class="profile-info-row">
+							<div class="profile-info-name"> 身份证号 </div>
+
+							<div class="profile-info-value">
+								<span id="idnum">?</span>
+							</div>
+						</div>
+
+						<div class="profile-info-row">
+							<div class="profile-info-name"> 性别 </div>
+
+							<div class="profile-info-value">
+								<span id="sex">?</span>
+							</div>
+						</div>
+
+						<div class="profile-info-row">
+							<div class="profile-info-name"> 缴费情况 </div>
+
+							<div class="profile-info-value">
+								<span id="login">是不是有好多费没交</span>
+							</div>
+						</div>
+
+					</div>
+
+					<!-- /section:pages/profile.info -->
+					<div class="space-20"></div>
+
+					<div class="widget-box transparent">
+						<div class="widget-header widget-header-small">
+							<h4 class="widget-title blue smaller">
+								<i class="ace-icon fa fa-history orange"></i>
+								缴费历史
+							</h4>
+
+							<div class="widget-toolbar action-buttons">
+								<a href="#" data-action="reload">
+									<i class="ace-icon fa fa-refresh blue"></i>
+								</a>
+							</div>
+						</div>
+
+						<div class="widget-body">
+							<div class="widget-main padding-8">
+								<!-- #section:pages/profile.feed -->
+								<div id="profile-feed-1" class="profile-feed">
+									<div class="profile-activity clearfix">
+										<div>
+											<i class="pull-left thumbicon fa fa-jpy btn-success no-hover"></i>
+											<a class="user" href="#"> Alex Doe </a>
+											joined
+											<a href="#">Country Music</a>
+
+											group.
+											<div class="time">
+												<i class="ace-icon fa fa-clock-o bigger-110"></i>
+												5 hours ago
+											</div>
+										</div>
+
+										<div class="tools action-buttons">
+											<a href="#" class="blue">
+												<i class="ace-icon fa fa-pencil bigger-125"></i>
+											</a>
+										</div>
+									</div>
+								</div>
+
+								<!-- /section:pages/profile.feed -->
+							</div>
+						</div>
+					</div>
+
+					<div class="space-6"></div>
+
+				</div>
+			</div>
+		</div>
+		<!-- PAGE CONTENT ENDS -->
+	</div><!-- /.col -->
+</div><!-- /.row -->
+<!-- page specific plugin scripts -->
+<!--[if !IE]> -->
+<script type="text/javascript">
+	window.jQuery || document.write("<script src='../assets/js/jquery.min.js'>"+"<"+"/script>");
+</script>
+<!-- <![endif]-->
+
+<!--[if IE]>
+<script type="text/javascript">
+ window.jQuery || document.write("<script src='../assets/js/jquery1x.min.js'>"+"<"+"/script>");
+</script>
+<![endif]-->
+<!--[if lte IE 8]>
+  <script src="../assets/js/excanvas.min.js"></script>
+<![endif]-->
+<script type="text/javascript">
+	if('ontouchstart' in document.documentElement) document.write("<script src='../assets/js/jquery.mobile.custom.min.js'>"+"<"+"/script>");
+</script>
+<script src="../assets/js/bootstrap.min.js"></script>
+<script src="../assets/js/ace-elements.min.js"></script>
+<script src="../assets/js/ace.min.js"></script>
+<script src="../assets/js/ace-extra.min.js"></script>
+<script type="text/javascript">
+jQuery(function($){
+	$('#profile-feed-1').ace_scroll({
+		height: '250px',
+		mouseWheelLock: true,
+		alwaysVisible : true
+	});
+	$.get('info',function(data){
+		if(data.success){
+			$('#username,#sname,#user-name').text(data.info.name);
+			$('#sid').text(data.info.studentId);
+			$('#idnum').text(data.info.idCardNum);
+			$('#sex').text(data.info.sex==0?"女":(data.info.sex==1?"男":"其他"));
+		}
+	},'json');
+});
+
+</script>
+</body>
+</html>
