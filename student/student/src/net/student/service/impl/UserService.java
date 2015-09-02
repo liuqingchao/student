@@ -5,16 +5,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import net.student.constants.CustomerException;
-import net.student.model.Department;
-import net.student.model.FeeItem;
-import net.student.model.User;
-import net.student.model.UserDepartment;
-import net.student.model.UserFeeItem;
-import net.student.request.JqGridQuerier;
-import net.student.response.QueryResult;
-import net.student.service.IUserService;
-
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -29,6 +19,16 @@ import com.j256.ormlite.stmt.PreparedQuery;
 import com.j256.ormlite.stmt.QueryBuilder;
 import com.j256.ormlite.stmt.Where;
 
+import net.student.constants.CustomerException;
+import net.student.model.Department;
+import net.student.model.FeeItem;
+import net.student.model.User;
+import net.student.model.UserDepartment;
+import net.student.model.UserFeeItem;
+import net.student.request.JqGridQuerier;
+import net.student.response.QueryResult;
+import net.student.service.IUserService;
+
 /**
  * 操作员Service实现类
  * 
@@ -39,8 +39,6 @@ import com.j256.ormlite.stmt.Where;
 public class UserService implements IUserService {
 	@Autowired
 	private Dao<User, Integer> userDao;
-	@Autowired
-	private Dao<FeeItem, String> feeItemDao;
 	@Autowired
     private Dao<UserFeeItem, Integer> userFeeItemDao;
 	@Autowired
@@ -174,11 +172,11 @@ public class UserService implements IUserService {
                     }
                     return null;
             }
-     });
+        });
 	}
 
 	@Override
-	public void updateUser(User user) throws Exception {
+	public void updateUser(final User user) throws Exception {
 		PreparedQuery<User> criteria = userDao.queryBuilder().setCountOf(true).where()
 				.eq("userCode", user.getUserCode()).and().ne("userId", user.getUserId()).prepare();
 		long count = userDao.countOf(criteria);
@@ -186,14 +184,78 @@ public class UserService implements IUserService {
 			throw new CustomerException("user.message.duplicateCode");
 		}
 		User oldUser = userDao.queryForId(user.getUserId());
-		if (StringUtils.isBlank(user.getPassword())) {
-			user.setPassword(oldUser.getPassword());
-		} else {
-			user.setPassword(DigestUtils.md5Hex(user.getPassword()));
-		}
+		user.setPassword(oldUser.getPassword());
 		user.setCreatedDate(oldUser.getCreatedDate());
 		user.setUserType(oldUser.getUserType());
-		userDao.update(user);
+		user.setLastUpdateDate(new Date());
+		final ForeignCollection<UserDepartment> userDepartments = oldUser.getUserDepartments();
+		final ForeignCollection<UserFeeItem> userFeeItems = oldUser.getUserFeeItems();
+		final List<UserDepartment> departmentList = new ArrayList<UserDepartment>();
+        final List<UserFeeItem> feeItemList = new ArrayList<UserFeeItem>();
+        final List<UserDepartment> delDepartmentList = new ArrayList<UserDepartment>();
+        final List<UserFeeItem> delFeeItemList = new ArrayList<UserFeeItem>();
+        List<UserDepartment> oldDepartmentList = new ArrayList<UserDepartment>();
+        List<UserFeeItem> oldFeeItemList = new ArrayList<UserFeeItem>();
+        if (StringUtils.isNotBlank(user.getDepartments())) {
+            String[] departmentIds = user.getDepartments().split(",");
+            for(String departmentId : departmentIds) {
+                UserDepartment userDepartment = new UserDepartment();
+                userDepartment.setUser(user);
+                Department department = new Department();
+                department.setDepartmentId(Integer.valueOf(departmentId));
+                userDepartment.setDepartment(department);
+                if(!userDepartments.contains(userDepartment)) {
+                	departmentList.add(userDepartment);
+                } else {
+                	oldDepartmentList.add(userDepartment);
+                }
+            }
+        }
+        CloseableIterator<UserDepartment> iterator = userDepartments.closeableIterator();
+		while(iterator.hasNext()) {
+		    UserDepartment userDepartment = iterator.next();
+		    if (!oldDepartmentList.contains(userDepartment)) {
+		    	delDepartmentList.add(userDepartment);
+		    }
+		}
+		iterator.close();
+        if (StringUtils.isNotBlank(user.getFeeitems())) {
+            String[] feeItemIds = user.getFeeitems().split(",");
+            for(String feeItemId : feeItemIds) {
+                UserFeeItem userFeeItem = new UserFeeItem();
+                userFeeItem.setUser(user);
+                FeeItem feeItem = new FeeItem();
+                feeItem.setItemId(feeItemId);
+                userFeeItem.setFeeItem(feeItem);
+                if (!userFeeItems.contains(userFeeItem)) {
+                	feeItemList.add(userFeeItem);
+                } else {
+                	oldFeeItemList.add(userFeeItem);
+                }
+            }
+        }
+        CloseableIterator<UserFeeItem> iterator2 = userFeeItems.closeableIterator();
+		while(iterator2.hasNext()) {
+			UserFeeItem userFeeItem = iterator2.next();
+		    if (!oldFeeItemList.contains(userFeeItem)) {
+		    	delFeeItemList.add(userFeeItem);
+		    }
+		}
+		iterator2.close();
+        TransactionManager.callInTransaction(userDao.getConnectionSource(), new Callable<Void>() {
+            public Void call() throws Exception {
+            		userDao.update(user);
+                    for (UserDepartment userDepartment : departmentList) {
+                        userDepartmentDao.create(userDepartment);
+                    }
+                    for (UserFeeItem userFeeItem : feeItemList) {
+                        userFeeItemDao.create(userFeeItem);
+                    }
+                    userDepartmentDao.delete(delDepartmentList);
+                    userFeeItemDao.delete(delFeeItemList);
+                    return null;
+            }
+        });
 	}
 
 	@Override
@@ -204,7 +266,16 @@ public class UserService implements IUserService {
 			idList.add(Integer.parseInt(partnerId));
 		}
 		PreparedQuery<User> criteria = userDao.queryBuilder().where().in("userId", idList).prepare();
-		List<User> list = userDao.query(criteria);
-		userDao.delete(list);
+		final List<User> list = userDao.query(criteria);
+		TransactionManager.callInTransaction(userDao.getConnectionSource(), new Callable<Void>() {
+            public Void call() throws Exception {
+            	for (User user : list) {
+        			userDepartmentDao.delete(user.getUserDepartments());
+        			userFeeItemDao.delete(user.getUserFeeItems());
+        			userDao.delete(user);
+        		}
+                return null;
+            }
+        });
 	}
 }

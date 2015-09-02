@@ -81,7 +81,6 @@ public class FeeItemService implements IFeeItemService {
 			throw new CustomerException("feeItem.message.duplicateName");
 		}
 		FeeItem oldOne = feeItemDao.queryForId(feeItem.getItemId());
-		feeItem.setCreatedBy(oldOne.getCreatedBy());
 		feeItem.setCreatedDate(oldOne.getCreatedDate());
 		feeItemDao.update(feeItem);
 	}

@@ -58,14 +58,11 @@ public class FeeItemController {
     @RequestMapping(value = "", method = RequestMethod.POST)
     public JsonResult saveFeeItem(FeeItem feeItem, String oper, HttpServletRequest request) {
         JsonResult result = new JsonResult();
-        User user = (User) request.getSession().getAttribute(Constants.SESSION_NAME);
         try {
             if (oper.equals(JqGridQuerier.OPER_ADD)) {
-            	feeItem.setCreatedBy(user);
             	feeItem.setCreatedDate(new Date());
                 feeItemService.saveFeeItem(feeItem);
             } else if (oper.equals(JqGridQuerier.OPER_UPDATE)) {
-            	feeItem.setLastUpdatedBy(user);
             	feeItem.setLastUpdatedDate(new Date());
                 feeItemService.updateFeeItem(feeItem);
             } else if (oper.equals(JqGridQuerier.OPER_DEL)) {

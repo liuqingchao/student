@@ -23,15 +23,11 @@ public class Student {
 	@DatabaseField(canBeNull = false)
 	private String name;
 	@DatabaseField(canBeNull = false)
-	private Integer sex;
+	private Integer status;
 	@DatabaseField(canBeNull = false, dataType = DataType.DATE_STRING, columnName = "createddate")
 	private Date createdDate;
-	@DatabaseField(canBeNull = false, foreign = true, foreignAutoRefresh = true, columnName = "createdby")
-	private User createdBy;
 	@DatabaseField(dataType = DataType.DATE_STRING, columnName = "lastupdateddate")
 	private Date lastUpdatedDate;
-	@DatabaseField(foreign = true, columnName = "lastupdatedby")
-	private User lastUpdatedBy;
 	@DatabaseField
 	private String remark;
 	
@@ -56,12 +52,6 @@ public class Student {
 	public void setName(String name) {
 		this.name = name;
 	}
-	public Integer getSex() {
-		return sex;
-	}
-	public void setSex(Integer sex) {
-		this.sex = sex;
-	}
 	@JsonFormat(pattern="yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
 	public Date getCreatedDate() {
 		return createdDate;
@@ -69,24 +59,12 @@ public class Student {
 	public void setCreatedDate(Date createdDate) {
 		this.createdDate = createdDate;
 	}
-	public User getCreatedBy() {
-		return createdBy;
-	}
-	public void setCreatedBy(User createdBy) {
-		this.createdBy = createdBy;
-	}
 	@JsonFormat(pattern="yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
 	public Date getLastUpdatedDate() {
 		return lastUpdatedDate;
 	}
 	public void setLastUpdatedDate(Date lastUpdatedDate) {
 		this.lastUpdatedDate = lastUpdatedDate;
-	}
-	public User getLastUpdatedBy() {
-		return lastUpdatedBy;
-	}
-	public void setLastUpdatedBy(User lastUpdatedBy) {
-		this.lastUpdatedBy = lastUpdatedBy;
 	}
 	public String getRemark() {
 		return remark;
@@ -96,9 +74,9 @@ public class Student {
 	}
 	@Override
 	public String toString() {
-		return "Student [studentId=" + studentId + ", idCardNumber=" + idCardNum + ", name=" + name + ", sex=" + sex
-				+ ", createdDate=" + createdDate + ", createdBy=" + createdBy + ", lastUpdatedDate=" + lastUpdatedDate
-				+ ", lastUpdatedBy=" + lastUpdatedBy + ", remark=" + remark + "]";
+		return "Student [studentId=" + studentId + ", idCardNumber=" + idCardNum + ", name=" + name + ", "
+				+ ", createdDate=" + createdDate + ", status=" + status + ", lastUpdatedDate=" + lastUpdatedDate
+				+ ", remark=" + remark + "]";
 	}
 	@Override
 	public int hashCode() {
@@ -128,5 +106,11 @@ public class Student {
 	}
 	public void setDepartment(Department department) {
 		this.department = department;
+	}
+	public Integer getStatus() {
+		return status;
+	}
+	public void setStatus(Integer status) {
+		this.status = status;
 	}
 }

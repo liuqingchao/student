@@ -1,6 +1,9 @@
 package net.student.service;
 
 import java.io.InputStream;
+import java.util.List;
+
+import javax.servlet.http.HttpSession;
 
 import net.student.model.Student;
 import net.student.model.User;
@@ -39,5 +42,23 @@ public interface IStudentService {
      * @param is
      * @throws Exception
      */
-    public JsonResult importStudents(InputStream is, User user) throws Exception;
+    public JsonResult importStudents(InputStream is, User user, HttpSession session) throws Exception;
+    /**
+     * 确认导入学生信息
+     * @param is
+     * @throws Exception
+     */
+    public JsonResult importStudents(List<Student> students) throws Exception;
+    /**
+     * 保存学生信息
+     * @param student
+     * @throws Exception
+     */
+    public void saveStudent(Student student) throws Exception;
+    /**
+     * 修改学生信息
+     * @param student
+     * @throws Exception
+     */
+    public void updateStudent(Student student) throws Exception;
 }

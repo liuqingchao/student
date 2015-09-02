@@ -35,11 +35,28 @@
 					<div class="col-xs-12">
 						<div class="form-group">
 							<label class="col-sm-3 control-label no-padding-right" for="stu_excel"> Excel文件 </label>
-							<div class="col-sm-9">
+							<div class="col-sm-7">
 								<input type="file" id="stu_excel" name="file"/>
 							</div>
 						</div>
 					</div>
+				</div>
+				<div class="well">
+					<h4 class="red smaller lighter">Excel格式要求</h4>
+					<ul class="list-unstyled spaced2">
+						<li>
+							<i class="ace-icon fa fa-circle green"></i>
+							无表头
+						</li>
+						<li>
+							<i class="ace-icon fa fa-circle green"></i>
+							共5列，依次为学号、姓名、身份证号、部门名称、状态(可不填，默认为“在校”)
+						</li>
+						<li>
+							<i class="ace-icon fa fa-circle green"></i>
+							工作表(Sheet)数量不限
+						</li>
+					</ul>
 				</div>
 				<div class="alert alert-success hidden">
 					<strong>
@@ -50,6 +67,21 @@
 					You successfully read this important alert message.
 					<br />
 				</div>
+				<div class="alert alert-danger hidden">
+					<strong>
+						<i class="ace-icon fa fa-times"></i>
+						Oh snap!
+					</strong>
+
+					Change a few things up and try submitting again.
+					<br />
+				</div>
+				<div class="alert alert-warning hidden">
+					<strong>Warning!</strong>
+
+					Best check yo self, you're not looking too good.
+					<br />
+				</div>				
 			</div>
 			<div class="modal-footer">
 				<button class="btn btn-sm" data-dismiss="modal">
@@ -68,188 +100,267 @@
 </div>
 <!-- page specific plugin scripts -->
 <script type="text/javascript">
-var scripts = [null,"assets/js/jquery.form.min.js","assets/js/jqGrid/jquery.jqGrid.min.js","assets/js/jqGrid/i18n/grid.locale-cn.js", null]
+var scripts = [null,"assets/js/jquery.form.min.js","assets/js/jqGrid/jquery.jqGrid.min.js","assets/js/jqGrid/i18n/grid.locale-cn.js","assets/js/bootbox.min.js", null]
 $('.page-content-area').ace_ajax('loadScripts', scripts, function() {
-	jQuery(function($) {
-		var grid_selector = "#grid-table";
-		var pager_selector = "#grid-pager";
-		
-		//resize to fit page size
-		$(window).on('resize.jqGrid', function () {
-			$(grid_selector).jqGrid( 'setGridWidth', $(".page-content").width() );
-	    })
-		//resize on sidebar collapse/expand
-		var parent_column = $(grid_selector).closest('[class*="col-"]');
-		$(document).on('settings.ace.jqGrid' , function(ev, event_name, collapsed) {
-			if( event_name === 'sidebar_collapsed' || event_name === 'main_container_fixed' ) {
-				//setTimeout is for webkit only to give time for DOM changes and then redraw!!!
-				setTimeout(function() {
-					$(grid_selector).jqGrid( 'setGridWidth', parent_column.width() );
-				}, 0);
-			}
-	    })
-		jQuery(grid_selector).jqGrid({
-			url: "student",
-			datatype: "json",
-			mtype: "GET",
-			height: 330,
-			colNames:['学号','身份证号', '姓名','性别', '导入时间','操作员'],
-			colModel:[
-				{name:'studentId',index:'studentId', width:90, editable:false,searchoptions:{sopt:['eq','ne','cn','nc']}},
-				{name:'idCardNum',index:'idCardNum', width:90, editable:false,searchoptions:{sopt:['eq','ne','cn','nc']}},
-				{name:'name',index:'name', width:90, editable: false,searchoptions:{sopt:['eq','ne','cn','nc']}},
-				{name:'sex',index:'sex', width:90, editable: false,formatter:function(v){return ['女','男','其他'][v];} ,stype:'select',searchoptions:{value:{"1":"男","0":"女","2":"其他"},sopt:['eq','ne']}},
-				{name:'createdDate',index:'createdDate', width:100, editable: false, search:false},
-				{name:'createdBy.userName',index:'createdBy', width:90,editable: true, search:false}
-			], 
-			rownumbers: true,
-			viewrecords : true,
-			rowNum:10,
-			rowList:[10,20,30],
-			pager : pager_selector,
-			altRows: true,
-			loadComplete : function() {
-				var table = this;
-				setTimeout(function(){
-					updatePagerIcons(table);
-					enableTooltips(table);
-				}, 0);
-			},
-			caption: "学生信息列表",
-			jsonReader: {
-				root: "rows", 
-				page: "page", 
-				total: "total", 
-				records: "records",
-				id: "studentId",
-				repeatitems:false
-			}
-		});
-		$(window).triggerHandler('resize.jqGrid');//trigger window resize to make the grid get the correct size
-		$("#jqgh_grid-table_cb").attr("style","padding-left:4px;margin-bottom:20px;");
-		//enable datepicker
-		//navButtons
-		jQuery(grid_selector).jqGrid('navGrid',pager_selector,
-			{ 	//navbar options
-				edit: false,
-				add: false,
-				del: false,
-				search: true,
-				searchicon : 'ace-icon fa fa-search orange',
-				refresh: true,
-				refreshicon : 'ace-icon fa fa-refresh green'
-			}, {
-				
-			}, {
-				
-			}, {
-				
-			}, {
-				//search form
-				recreateForm: true,
-				afterShowSearch: function(e){
-					var form = $(e[0]);
-					form.closest('.ui-jqdialog').find('.ui-jqdialog-title').wrap('<div class="widget-header" />')
-					style_search_form(form);
-				},
-				afterRedraw: function(){
-					style_search_filters($(this));
-				},
-				multipleSearch: true
-			}, {
+	var selectDepartment;
+	$.get("department/select", function(data){
+		selectDepartment = $.parseJSON(data);
+		jQuery(function($) {
+			var grid_selector = "#grid-table";
+			var pager_selector = "#grid-pager";
 			
-			}
-		).navSeparatorAdd(pager_selector).navButtonAdd(pager_selector,{
-			caption:"", 
-			title:"导入Excel",
-			buttonicon:"ace-icon fa fa-upload purple", 
-			onClickButton: function(){
-				$("#import-modal-form").show();
-				$('#stu_excel').ace_file_input({
-					no_file:'请选择 ...',
-					btn_choose:'选择',
-					btn_change:'重选',
-					droppable:false,
-					onchange:null,
-					thumbnail:false,
-					allowExt:['xls']
-					//onchange:''
-					//
-				});
-				var validator = $('#import-form').validate({
-					errorClass: 'form-error',
-					rules: {
-						stu_excel: {
-							required: true
-						}
+			//resize to fit page size
+			$(window).on('resize.jqGrid', function () {
+				$(grid_selector).jqGrid( 'setGridWidth', $(".page-content").width() );
+		    })
+			//resize on sidebar collapse/expand
+			var parent_column = $(grid_selector).closest('[class*="col-"]');
+			$(document).on('settings.ace.jqGrid' , function(ev, event_name, collapsed) {
+				if( event_name === 'sidebar_collapsed' || event_name === 'main_container_fixed' ) {
+					//setTimeout is for webkit only to give time for DOM changes and then redraw!!!
+					setTimeout(function() {
+						$(grid_selector).jqGrid( 'setGridWidth', parent_column.width() );
+					}, 0);
+				}
+		    })
+			jQuery(grid_selector).jqGrid({
+				url: "student",
+				datatype: "json",
+				mtype: "GET",
+				height: 330,
+				colNames:['学号','姓名','身份证号', '部门','状态', '创建时间','最后修改时间'],
+				colModel:[
+					{name:'studentId',index:'studentId', width:90, editable:true,editoptions:{size:"20",maxlength:"10"},editrules:{required:true},searchoptions:{sopt:['eq','ne','cn','nc']}},
+					{name:'name',index:'name', width:90, editable: true,editoptions:{size:"20",maxlength:"10"},editrules:{required:true},searchoptions:{sopt:['eq','ne','cn','nc']}},
+					{name:'idCardNum',index:'idCardNum', width:90, editable:true,editoptions:{size:"20",maxlength:"20"},editrules:{required:true},searchoptions:{sopt:['eq','ne','cn','nc']}},
+					{name:'department.departmentId',index:'departmentid', width:90, editable: true,edittype:'select',editoptions: {value:selectDepartment},formatter:function(v){return selectDepartment[v];} ,stype:'select',searchoptions:{value:selectDepartment,sopt:['eq','ne']}},
+					{name:'status',index:'status', width:90, editable: true,edittype:'select',editoptions: {value:{"0":"在校","1":"休学","2":"退学","3":"毕业"}},formatter:function(v){return ['在校','休学','退学','毕业'][v];} ,stype:'select',searchoptions:{value:{"0":"在校","1":"休学","2":"退学","3":"毕业"},sopt:['eq','ne']}},
+					{name:'createdDate',index:'createdDate', width:100, editable: false, search:false},
+					{name:'lastUpdatedDate',index:'lastUpdateDate', width:90,editable: false, search:false}
+				], 
+				rownumbers: true,
+				viewrecords : true,
+				rowNum:10,
+				rowList:[10,20,30],
+				pager : pager_selector,
+				altRows: true,
+				loadComplete : function() {
+					var table = this;
+					setTimeout(function(){
+						updatePagerIcons(table);
+						enableTooltips(table);
+					}, 0);
+				},
+				editurl: "student",
+				caption: "学生信息列表",
+				jsonReader: {
+					root: "rows", 
+					page: "page", 
+					total: "total", 
+					records: "records",
+					id: "studentId",
+					repeatitems:false
+				}
+			});
+			$(window).triggerHandler('resize.jqGrid');//trigger window resize to make the grid get the correct size
+			$("#jqgh_grid-table_cb").attr("style","padding-left:4px;margin-bottom:20px;");
+			//enable datepicker
+			//navButtons
+			jQuery(grid_selector).jqGrid('navGrid',pager_selector,
+				{ 	//navbar options
+					edit: true,
+					editicon : 'ace-icon fa fa-pencil blue',
+					add: true,
+					addicon : 'ace-icon fa fa-plus-circle purple',
+					del: false,
+					search: true,
+					searchicon : 'ace-icon fa fa-search orange',
+					refresh: true,
+					refreshicon : 'ace-icon fa fa-refresh green'
+				}, {
+					//edit record form
+					modal:true,
+					recreateForm: true,
+					beforeShowForm : function(e,d,s) {
+						var form = $(e[0]);
+						form.closest('.ui-jqdialog').find('.ui-jqdialog-titlebar').wrapInner('<div class="widget-header" />');
+						style_edit_form(form);
+						$('#studentId',form).attr('readOnly',true);
 					},
-					messages: {
-						stu_excel: {
-							required: "请选择Excel文件."
-						}
+					afterShowForm:function(e){
+						var form = $(e[0]);
+						$('select',form).width($('#studentId',form).width());
 					},
-					submitHandler: function(form) {
-						$(form).ajaxSubmit({
-					        type:"post",
-					        url:"student",
-					        dataType:"json",
-					        success: function(result){
-					        	if(result.success) {
-					        		
-					        	} else {
-					        		validator.showErrors({
-					        			stu_excel: result.info.msg
-									});
-					        	}
-					        }
-					      });
-					}  
-				});
-			}, 
-			position:"last"
-		});
-		
-		function style_search_filters(form) {
-			form.find('.delete-rule').val('X');
-			form.find('.add-rule').addClass('btn btn-xs btn-primary');
-			form.find('.add-group').addClass('btn btn-xs btn-success');
-			form.find('.delete-group').addClass('btn btn-xs btn-danger');
-		}
-		function style_search_form(form) {
-			var dialog = form.closest('.ui-jqdialog');
-			var buttons = dialog.find('.EditTable')
-			buttons.find('.EditButton a[id*="_reset"]').addClass('btn btn-sm btn-info').find('.ui-icon').attr('class', 'ace-icon fa fa-retweet');
-			buttons.find('.EditButton a[id*="_query"]').addClass('btn btn-sm btn-inverse').find('.ui-icon').attr('class', 'ace-icon fa fa-comment-o');
-			buttons.find('.EditButton a[id*="_search"]').addClass('btn btn-sm btn-purple').find('.ui-icon').attr('class', 'ace-icon fa fa-search');
-		}
-		
-		//replace icons with FontAwesome icons like above
-		function updatePagerIcons(table) {
-			var replacement = 
-			{
-				'ui-icon-seek-first' : 'ace-icon fa fa-angle-double-left bigger-140',
-				'ui-icon-seek-prev' : 'ace-icon fa fa-angle-left bigger-140',
-				'ui-icon-seek-next' : 'ace-icon fa fa-angle-right bigger-140',
-				'ui-icon-seek-end' : 'ace-icon fa fa-angle-double-right bigger-140'
-			};
-			$('.ui-pg-table:not(.navtable) > tbody > tr > .ui-pg-button > .ui-icon').each(function(){
-				var icon = $(this);
-				var $class = $.trim(icon.attr('class').replace('ui-icon', ''));
+					afterSubmit:function(res){
+						var result = $.parseJSON(res.responseText);
+						return [result.success,result.info?result.info.msg:null];
+					}
+				}, {
+					//new record form
+					modal:true,
+					closeAfterAdd: true,
+					recreateForm: true,
+					viewPagerButtons: false,
+					beforeShowForm : function(e) {
+						var form = $(e[0]);
+						form.closest('.ui-jqdialog').find('.ui-jqdialog-titlebar').wrapInner('<div class="widget-header" />');
+						style_edit_form(form);
+					},
+					afterShowForm:function(e){
+						var form = $(e[0]);
+						$('select',form).width($('#studentId',form).width());
+					},
+					afterSubmit:function(res,postdata){
+						var result = $.parseJSON(res.responseText);
+						if (result.info&&result.info.confirm) {
+							bootbox.confirm({  
+						        buttons: {  
+						            confirm: {  
+						                label: '确认' 
+						            },  
+						            cancel: {  
+						                label: '取消' 
+						            }  
+						        },  
+						        message: result.info.msg,  
+						        callback: function(result) {  
+						            if(result) {
+						            	postdata.oper='edit';
+						                $.post('student',postdata,function(data){
+						                	if(data.success) {
+						                		$('#editmodgrid-table').hide();
+						                	} else {
+						                		$('#FormError:first-child').text(data.info?data.info.msg:null);
+						                	}
+						                },'json');
+						            } 
+						        },  
+						        title: "提示信息",  
+						    });
+						}
+						return [result.success,result.info?result.info.msg:null];
+					}
+				}, {
+					
+				}, {
+					//search form
+					recreateForm: true,
+					afterShowSearch: function(e){
+						var form = $(e[0]);
+						form.closest('.ui-jqdialog').find('.ui-jqdialog-title').wrap('<div class="widget-header" />')
+						style_search_form(form);
+					},
+					afterRedraw: function(){
+						style_search_filters($(this));
+					},
+					multipleSearch: true
+				}, {
 				
-				if($class in replacement) icon.attr('class', 'ui-icon '+replacement[$class]);
-			})
-		}
-	
-		function enableTooltips(table) {
-			$('.navtable .ui-pg-button').tooltip({container:'body'});
-			$(table).find('.ui-pg-div').tooltip({container:'body'});
-		}
+				}
+			).navSeparatorAdd(pager_selector).navButtonAdd(pager_selector,{
+				caption:"", 
+				title:"导入Excel",
+				buttonicon:"ace-icon fa fa-upload purple", 
+				onClickButton: function(){
+					$("#import-modal-form").show();
+					$('#stu_excel').ace_file_input({
+						no_file:'请选择 ...',
+						btn_choose:'选择',
+						btn_change:'重选',
+						droppable:false,
+						onchange:null,
+						thumbnail:false,
+						allowExt:['xls']
+						//onchange:''
+						//
+					});
+					var validator = $('#import-form').validate({
+						errorClass: 'form-error',
+						rules: {
+							stu_excel: {
+								required: true
+							}
+						},
+						messages: {
+							stu_excel: {
+								required: "请选择Excel文件."
+							}
+						},
+						submitHandler: function(form) {
+							$(form).ajaxSubmit({
+						        type:"post",
+						        url:"student",
+						        dataType:"json",
+						        success: function(result){
+						        	if(result.success) {
+						        		
+						        	} else {
+						        		validator.showErrors({
+						        			stu_excel: result.info.msg
+										});
+						        	}
+						        }
+						      });
+						}  
+					});
+				}, 
+				position:"last"
+			});
+			
+			function style_edit_form(form) {
+				//update buttons classes
+				var buttons = form.next().find('.EditButton .fm-button');
+				buttons.addClass('btn btn-sm').find('[class*="-icon"]').hide();//ui-icon, s-icon
+				buttons.eq(0).addClass('btn-primary').prepend('<i class="ace-icon fa fa-check"></i>');
+				buttons.eq(1).prepend('<i class="ace-icon fa fa-times"></i>');
+				
+				buttons = form.next().find('.navButton a');
+				buttons.find('.ui-icon').hide();
+				buttons.eq(0).append('<i class="ace-icon fa fa-chevron-left"></i>');
+				buttons.eq(1).append('<i class="ace-icon fa fa-chevron-right"></i>');		
+			}
+			function style_search_filters(form) {
+				form.find('.delete-rule').val('X');
+				form.find('.add-rule').addClass('btn btn-xs btn-primary');
+				form.find('.add-group').addClass('btn btn-xs btn-success');
+				form.find('.delete-group').addClass('btn btn-xs btn-danger');
+			}
+			function style_search_form(form) {
+				var dialog = form.closest('.ui-jqdialog');
+				var buttons = dialog.find('.EditTable')
+				buttons.find('.EditButton a[id*="_reset"]').addClass('btn btn-sm btn-info').find('.ui-icon').attr('class', 'ace-icon fa fa-retweet');
+				buttons.find('.EditButton a[id*="_query"]').addClass('btn btn-sm btn-inverse').find('.ui-icon').attr('class', 'ace-icon fa fa-comment-o');
+				buttons.find('.EditButton a[id*="_search"]').addClass('btn btn-sm btn-purple').find('.ui-icon').attr('class', 'ace-icon fa fa-search');
+			}
+			
+			//replace icons with FontAwesome icons like above
+			function updatePagerIcons(table) {
+				var replacement = 
+				{
+					'ui-icon-seek-first' : 'ace-icon fa fa-angle-double-left bigger-140',
+					'ui-icon-seek-prev' : 'ace-icon fa fa-angle-left bigger-140',
+					'ui-icon-seek-next' : 'ace-icon fa fa-angle-right bigger-140',
+					'ui-icon-seek-end' : 'ace-icon fa fa-angle-double-right bigger-140'
+				};
+				$('.ui-pg-table:not(.navtable) > tbody > tr > .ui-pg-button > .ui-icon').each(function(){
+					var icon = $(this);
+					var $class = $.trim(icon.attr('class').replace('ui-icon', ''));
+					
+					if($class in replacement) icon.attr('class', 'ui-icon '+replacement[$class]);
+				})
+			}
 		
-		$(document).one('ajaxloadstart.page', function(e) {
-			$(grid_selector).jqGrid('GridUnload');
-			$('.ui-jqdialog').remove();
+			function enableTooltips(table) {
+				$('.navtable .ui-pg-button').tooltip({container:'body'});
+				$(table).find('.ui-pg-div').tooltip({container:'body'});
+			}
+			
+			$(document).one('ajaxloadstart.page', function(e) {
+				$(grid_selector).jqGrid('GridUnload');
+				$('.ui-jqdialog').remove();
+			});
 		});
-	});
+	},'text');
 });
 
 </script>
