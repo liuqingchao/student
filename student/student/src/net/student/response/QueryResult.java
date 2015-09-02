@@ -2,6 +2,8 @@ package net.student.response;
 
 import java.util.List;
 
+import com.alibaba.fastjson.JSONObject;
+
 /**
  * jqGrid返回结果
  * @author liuqingchao
@@ -11,6 +13,7 @@ public class QueryResult<T> {
     private Long total;//总页数
     private Long page;//当前页
     private Long records;
+    private JSONObject userData;
     private List<T> rows;
     
     public Long getTotal() {
@@ -37,5 +40,11 @@ public class QueryResult<T> {
     public void setRows(List<T> rows) {
         this.rows = rows;
     }
+	public JSONObject getUserData() {
+		return userData;
+	}
+	public void setUserData(JSONObject userData) {
+		this.userData = userData;
+	}
     
 }

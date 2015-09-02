@@ -35,7 +35,7 @@ public interface IStudentService {
      * @param querier
      * @return
      */
-    public QueryResult<Student> queryStudents(JqGridQuerier<Student, String> querier) throws Exception;
+    public QueryResult<Student> queryStudents(JqGridQuerier<Student, String> querier, boolean limit) throws Exception;
     
     /**
      * 导入学生信息
@@ -61,4 +61,10 @@ public interface IStudentService {
      * @throws Exception
      */
     public void updateStudent(Student student) throws Exception;
+    /**
+     * 修改学生状态
+     * @param student
+     * @throws Exception
+     */
+    public void updateStudentStatus(String status, String studentIds, String departmentId, String year) throws Exception;
 }

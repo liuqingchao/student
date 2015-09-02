@@ -3,7 +3,10 @@
 	<head>
 		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
 		<meta charset="utf-8" />
-		<title>欢迎进入学生收费系统</title>
+		<meta http-equiv="Pragma" content="no-cache"/>
+		<meta http-equiv="Cache-Control" content="no-cache"/>
+		<meta http-equiv="Expires" content="0"/>
+		<title>欢迎进入自助收缴系统</title>
 
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
 		<link rel="shortcut icon" href="../assets/favicon.ico" type="image/x-icon" />
@@ -59,7 +62,7 @@
 					<a href="#" class="navbar-brand">
 						<small>
 							<i class="fa fa-leaf"></i>
-							学生收费系统
+							自助收缴系统
 						</small>
 					</a>
 
@@ -79,7 +82,7 @@
 								<img class="nav-user-photo" src="../assets/avatars/avatar2.png" alt="User's Photo" />
 								<span class="user-info">
 									<small>欢迎,</small>
-									<middle id="user-name"></middle>
+									<span id="user-name"></span>
 								</span>
 
 								<i class="ace-icon fa fa-caret-down"></i>
@@ -87,7 +90,7 @@
 
 							<ul class="user-menu dropdown-menu-right dropdown-menu dropdown-yellow dropdown-caret dropdown-close">
 								<li>
-									<a href="logout">
+									<a href="../slogout">
 										<i class="ace-icon fa fa-power-off"></i>
 										退出
 									</a>
@@ -172,18 +175,34 @@
 						</div>
 
 						<div class="profile-info-row">
-							<div class="profile-info-name"> 性别 </div>
+							<div class="profile-info-name"> 部门 </div>
 
 							<div class="profile-info-value">
-								<span id="sex">?</span>
+								<span id="department">?</span>
+							</div>
+						</div>
+						
+						<div class="profile-info-row">
+							<div class="profile-info-name"> 状态 </div>
+
+							<div class="profile-info-value">
+								<span id="status">?</span>
 							</div>
 						</div>
 
 						<div class="profile-info-row">
-							<div class="profile-info-name"> 缴费情况 </div>
+							<div class="profile-info-name"> 应缴费用 </div>
 
 							<div class="profile-info-value">
-								<span id="login">是不是有好多费没交</span>
+								<span id="payment"></span>
+							</div>
+						</div>
+						
+						<div class="profile-info-row hidden" id="expired_div">
+							<div class="profile-info-name"> 过期应缴费用 </div>
+
+							<div class="profile-info-value">
+								<span id="expired"></span>
 							</div>
 						</div>
 
@@ -207,32 +226,7 @@
 						</div>
 
 						<div class="widget-body">
-							<div class="widget-main padding-8">
-								<!-- #section:pages/profile.feed -->
-								<div id="profile-feed-1" class="profile-feed">
-									<div class="profile-activity clearfix">
-										<div>
-											<i class="pull-left thumbicon fa fa-jpy btn-success no-hover"></i>
-											<a class="user" href="#"> Alex Doe </a>
-											joined
-											<a href="#">Country Music</a>
-
-											group.
-											<div class="time">
-												<i class="ace-icon fa fa-clock-o bigger-110"></i>
-												5 hours ago
-											</div>
-										</div>
-
-										<div class="tools action-buttons">
-											<a href="#" class="blue">
-												<i class="ace-icon fa fa-pencil bigger-125"></i>
-											</a>
-										</div>
-									</div>
-								</div>
-
-								<!-- /section:pages/profile.feed -->
+							<div class="widget-main padding-8" id="histories">
 							</div>
 						</div>
 					</div>
@@ -268,22 +262,81 @@
 <script src="../assets/js/ace.min.js"></script>
 <script src="../assets/js/ace-extra.min.js"></script>
 <script type="text/javascript">
+var paymentInfo;
 jQuery(function($){
 	$('#profile-feed-1').ace_scroll({
 		height: '250px',
 		mouseWheelLock: true,
 		alwaysVisible : true
 	});
-	$.get('info',function(data){
-		if(data.success){
+	$.get('info?'+(new Date()),function(data){
+		if(data.info){
 			$('#username,#sname,#user-name').text(data.info.name);
 			$('#sid').text(data.info.studentId);
 			$('#idnum').text(data.info.idCardNum);
-			$('#sex').text(data.info.sex==0?"女":(data.info.sex==1?"男":"其他"));
+			$('#department').text(data.info.department.departmentName);
+			$('#status').text(['在校','休学','退学','毕业'][data.info.status]);
+		}
+		if(!data.success) {
+			$('#payment').html("<font color='red'>缴费信息获取失败，请稍后重试</font>");
+		} else {
+			paymentInfo = data.info.paymentInfo;
+			if (paymentInfo.to_do.length==0) {
+				$('#payment').text("当前无未缴费信息");
+				$('#expired').text("当前无过期未缴费信息");
+			} else {
+				var btns = '<div class="row"><div class="col-xs-12">';
+				var oldbtns = '<div class="row"><div class="col-xs-12">';
+				for (var i = 0; i < paymentInfo.to_do.length;i++) {
+					var item = paymentInfo.to_do[i];
+					if (item.active) {
+						btns+='<div class="btn-group col-xs-2"><button class="btn btn-sm btn-danger" onclick="to_order('+item.paymentId+')">'+item.itemName+'</button>'+
+						'<button data-toggle="dropdown" class="btn btn-sm btn-danger dropdown-toggle">'+
+						'<i class="ace-icon fa fa-angle-down icon-only"></i></button><ul class="dropdown-menu dropdown-yellow">'+
+						'<li><a href="#">金额:'+(item.amount/1000).toFixed(2)+'</a></li><li><a href="#">说明:'+item.desc+'</a></li>'+
+						'<li><a href="#">开始时间:'+item.startDate+'</a></li><li><a href="#">截止时间:'+item.endDate+'</a></li>'+
+						'</ul></div>';
+					} else {
+						oldbtns+='<div class="btn-group col-xs-2"><button class="btn btn-sm btn-grey" disabled="disabled">'+item.itemName+'</button>'+
+						'<button data-toggle="dropdown" class="btn btn-sm btn-grey dropdown-toggle">'+
+						'<i class="ace-icon fa fa-angle-down icon-only"></i></button><ul class="dropdown-menu dropdown-yellow">'+
+						'<li><a href="#">金额:'+(item.amount/1000).toFixed(2)+'</a></li><li><a href="#">说明:'+item.desc+'</a></li>'+
+						'<li><a href="#">开始时间:'+item.startDate+'</a></li><li><a href="#">截止时间:'+item.endDate+'</a></li>'+
+						'</ul></div>';
+					}
+				}
+				btns+='</div></div>';
+				oldbtns+='</div></div>';
+				if (btns.length<60) {
+					$('#payment').text("当前无未缴费信息");
+				} else {
+					$('#payment').append(btns);
+				}
+				if (oldbtns.length>60) {
+					$("#expired_div").removeClass("hidden");
+					$('#expired').append(oldbtns);
+				}
+			}
+			if(paymentInfo.history.length>0) {
+				var his = [];
+				for (var i=0;i<paymentInfo.history.length;i++){
+					var item = paymentInfo.history[i];
+					his.push('<div id="profile-feed-1" class="profile-feed"><div class="profile-activity clearfix">'+
+							'<div><i class="pull-left thumbicon fa fa-jpy btn-success no-hover"></i>'+
+								'已'+(item.online?"线上":"线下")+'支付<a href="#" data-rel="tooltip" title="'+item.desc+'">'+item.itemName+'</a>'+
+								(item.amount/1000).toFixed(2)+'元'+
+								'<div class="time"><i class="ace-icon fa fa-clock-o bigger-110"></i>'+
+								item.payDate+'</div></div></div></div>');
+				}
+				$("#histories").append(his.join(''));
+				$('[data-rel=tooltip]').tooltip();
+			}
 		}
 	},'json');
 });
-
+function to_order(paymentId) {
+	window.open("../order.html?paymentId="+paymentId,"_blank");
+}
 </script>
 </body>
 </html>

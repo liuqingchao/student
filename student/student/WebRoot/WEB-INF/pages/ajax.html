@@ -3,7 +3,7 @@
 	<head>
 		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
 		<meta charset="utf-8" />
-		<title>欢迎进入学生收费系统</title>
+		<title>欢迎进入自助收缴系统</title>
 
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
 		<link rel="shortcut icon" href="assets/favicon.ico" type="image/x-icon" />
@@ -66,7 +66,7 @@
 					<a href="#" class="navbar-brand">
 						<small>
 							<i class="fa fa-leaf"></i>
-							学生收费系统
+							自助收缴系统
 						</small>
 					</a>
 
@@ -180,19 +180,19 @@
 				</script>
 				<div class="sidebar-shortcuts" id="sidebar-shortcuts">
 					<div class="sidebar-shortcuts-large" id="sidebar-shortcuts-large">
-						<button class="btn btn-success">
+						<button class="btn btn-success" disabled="disabled">
 							<i class="ace-icon fa fa-signal"></i>
 						</button>
 
-						<button class="btn btn-info">
+						<button class="btn btn-info" disabled="disabled">
 							<i class="ace-icon fa fa-pencil"></i>
 						</button>
 						<!-- #section:basics/sidebar.layout.shortcuts -->
-						<button class="btn btn-warning">
+						<button class="btn btn-warning" disabled="disabled">
 							<i class="ace-icon fa fa-users"></i>
 						</button>
 
-						<button class="btn btn-danger">
+						<button class="btn btn-danger" disabled="disabled">
 							<i class="ace-icon fa fa-cogs"></i>
 						</button>
 						<!-- /section:basics/sidebar.layout.shortcuts -->
@@ -221,7 +221,7 @@
 
 					<li class="">
 						<a href="#" class="dropdown-toggle">
-							<i class="menu-icon fa fa-desktop"></i>
+							<i class="menu-icon fa fa-credit-card"></i>
 							<span class="menu-text">
 								缴费管理
 							</span>
@@ -231,7 +231,7 @@
 
 						<b class="arrow"></b>
 
-						<ul class="submenu">
+						<ul class="submenu realm">
 							<li class="">
 								<a data-url="page/student" href="ajax.html#page/student">
 									<i class="menu-icon fa fa-caret-right"></i>
@@ -241,10 +241,34 @@
 								<b class="arrow"></b>
 							</li>
 
-							<li class="">
-								<a data-url="page/version" href="ajax.html#page/version">
+							<li class="realm">
+								<a data-url="page/payment" href="ajax.html#page/payment">
 									<i class="menu-icon fa fa-caret-right"></i>
-									费用管理
+									未缴费信息
+								</a>
+
+								<b class="arrow"></b>
+							</li>
+							<li class="realm">
+								<a data-url="page/paidlog" href="ajax.html#page/paidlog">
+									<i class="menu-icon fa fa-caret-right"></i>
+									已缴费信息
+								</a>
+
+								<b class="arrow"></b>
+							</li>
+							<li class="realm">
+								<a data-url="page/paystat" href="ajax.html#page/paystat">
+									<i class="menu-icon fa fa-caret-right"></i>
+									缴费统计
+								</a>
+
+								<b class="arrow"></b>
+							</li>
+							<li class="realm">
+								<a data-url="page/offline" href="ajax.html#page/offline">
+									<i class="menu-icon fa fa-caret-right"></i>
+									线下缴费信息
 								</a>
 
 								<b class="arrow"></b>
@@ -252,7 +276,7 @@
 						</ul>
 					</li>
 
-					<li class="">
+					<li class="" id="secsubmenu">
 						<a href="#" class="dropdown-toggle">
 							<i class="menu-icon fa fa-cogs"></i>
 							<span class="menu-text"> 系统管理 </span>
@@ -262,7 +286,7 @@
 
 						<b class="arrow"></b>
 
-						<ul class="submenu" id="realm">
+						<ul class="submenu">
 							<li class="">
 								<a data-url="page/department" href="ajax.html#page/department">
 									<i class="menu-icon fa fa-caret-right"></i>
@@ -288,7 +312,7 @@
 								<b class="arrow"></b>
 							</li>
 
-							<li class="hidden realm">
+							<li class="hidden">
 								<a data-url="page/user_log" href="ajax.html#page/user_log">
 									<i class="menu-icon fa fa-caret-right"></i>
 									操作日志查询
@@ -430,8 +454,7 @@
 					<!-- #section:basics/footer -->
 					<div class="footer-content">
 						<span class="bigger-120">
-							<span class="blue bolder">Hisense</span>
-							Media Networks Ltd. &copy; 2013-2014
+							&copy; Hubei Wisdom Union Hi-Tech CO.,Ltd. &copy; 2013-2015
 						</span>
 
 						
@@ -472,11 +495,12 @@
 		<script src="assets/js/jquery.validate.min.js"></script>
 		<script type="text/javascript">
 			jQuery(function($){
-				$.get('login/current',function(data){
+				$.get('login/current?'+(new Date()),function(data){
 					if(data.success){
 						$('#user-name').text(data.info.userName);
 						if (data.info.userType==1) {
-							$("#realm").children("li:not(.realm)").hide();
+							$(".submenu").children("li:not(.realm)").hide();
+							$("#secsubmenu").hide();
 						}
 						if (data.info.pwd) {
 							$('#modal-form').show();

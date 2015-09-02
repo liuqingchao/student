@@ -136,7 +136,8 @@ public class LoginController {
      */
     @RequestMapping(value = "/slogin", method = RequestMethod.GET)
     public ModelAndView sinit(HttpServletRequest request) {
-        if (request.getSession().getAttribute(Constants.SESSION_NAME) != null) {
+    	Object obj = request.getSession().getAttribute(Constants.SESSION_NAME);
+        if (obj != null && obj instanceof Student) {
             return new ModelAndView("redirect:/student/profile");
         } else {
             ModelAndView mv = new ModelAndView();

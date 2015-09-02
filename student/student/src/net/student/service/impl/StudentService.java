@@ -1,6 +1,7 @@
 package net.student.service.impl;
 
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.concurrent.Callable;
 import javax.servlet.http.HttpSession;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.poi.hssf.usermodel.HSSFCell;
 import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -22,6 +24,7 @@ import com.j256.ormlite.misc.TransactionManager;
 import com.j256.ormlite.stmt.QueryBuilder;
 import com.j256.ormlite.stmt.Where;
 
+import net.student.constants.Constants;
 import net.student.constants.CustomerException;
 import net.student.model.Department;
 import net.student.model.Student;
@@ -62,7 +65,7 @@ public class StudentService implements IStudentService {
 	}
 
 	@Override
-	public QueryResult<Student> queryStudents(JqGridQuerier<Student, String> querier) throws Exception {
+	public QueryResult<Student> queryStudents(JqGridQuerier<Student, String> querier, boolean limit) throws Exception {
 		Long page = querier.getPage();
 		Long rows = querier.getRows();
 		Long start = (page - 1) * rows;
@@ -75,7 +78,7 @@ public class StudentService implements IStudentService {
 				queryBuilder.orderBy(querier.getSidx(), false);
 			}
 		} else {
-			queryBuilder.orderBy("studentId", false);
+			queryBuilder.orderBy("createddate", false);
 		}
 		int count = querier.transferQueryCondition(where);
 		if (count == 0) {
@@ -85,7 +88,12 @@ public class StudentService implements IStudentService {
 		long totalRecord = studentDao.countOf(queryBuilder.setCountOf(true).prepare());
 		long totalPage = totalRecord % rows == 0 ? totalRecord / rows : totalRecord / rows + 1;
 		queryResult.setTotal(totalPage);
-		List<Student> list = studentDao.query(queryBuilder.setCountOf(false).limit(rows).offset(start).prepare());
+		List<Student> list = null;
+		if (limit) {
+			list = studentDao.query(queryBuilder.setCountOf(false).limit(rows).offset(start).prepare());
+		} else {
+			list = studentDao.query(queryBuilder.setCountOf(false).prepare());
+		}
 		queryResult.setRecords(totalRecord);
 		queryResult.setRows(list);
 		queryResult.setPage(page);
@@ -105,13 +113,32 @@ public class StudentService implements IStudentService {
 		for (int i = 0; i < sheetCount; i++) {
 			HSSFSheet sh = wb.getSheetAt(i);
 			int rowCount = sh.getLastRowNum();
-			for (int j = 0; j < rowCount; j++) {
+			for (int j = 1; j < rowCount + 1; j++) {
 				HSSFRow row = sh.getRow(j);
+				if(row == null) {
+					continue;
+				}
 				Student student = new Student();
-				student.setStudentId(row.getCell(0).getStringCellValue());
-				student.setName(row.getCell(1).getStringCellValue());
-				student.setIdCardNum(row.getCell(2).getStringCellValue());
-				String departmentName = row.getCell(3).getStringCellValue();
+				HSSFCell cell0 = row.getCell(0);
+				HSSFCell cell1 = row.getCell(1);
+				HSSFCell cell2 = row.getCell(2);
+				HSSFCell cell3 = row.getCell(3);
+				if (cell0 == null || cell1 == null || cell2 == null || cell3 == null) {
+					errorArray.add("第" + (j + 1) + "行数据不完整");
+					continue;
+				}
+				if (cell0.getCellType() == HSSFCell.CELL_TYPE_NUMERIC) {
+					student.setStudentId(StringUtils.trim(BigDecimal.valueOf(cell0.getNumericCellValue()).toPlainString()));
+				} else {
+					student.setStudentId(StringUtils.trim(cell0.getStringCellValue()));
+				}
+				student.setName(StringUtils.trim(row.getCell(1).getStringCellValue()));
+				if (cell2.getCellType() == HSSFCell.CELL_TYPE_NUMERIC) {
+					student.setIdCardNum(StringUtils.trim(BigDecimal.valueOf(cell2.getNumericCellValue()).toPlainString()));
+				} else {
+					student.setIdCardNum(StringUtils.trim(cell2.getStringCellValue()));
+				}
+				String departmentName = cell3.getStringCellValue();
 				String statusName = row.getCell(4) == null ? null : row.getCell(4).getStringCellValue();
 				if (StringUtils.isBlank(student.getStudentId()) || StringUtils.isBlank(student.getIdCardNum())
 						|| StringUtils.isBlank(student.getName()) || StringUtils.isBlank(departmentName)) {
@@ -125,12 +152,12 @@ public class StudentService implements IStudentService {
 					}
 				}
 				if (student.getDepartment() == null) {
-					errorArray.add("第" + (j + 1) + "行第4列部门名称未找到");
+					errorArray.add("第" + (j + 1) + "行第4列部门名称未找到:"+departmentName);
 					continue;
 				}
 				student.setStatus(this.getStatus(statusName));
 				if (student.getStatus() == null) {
-					errorArray.add("第" + (j + 1) + "行第5列状态无效");
+					errorArray.add("第" + (j + 1) + "行第5列状态无效:"+statusName);
 					continue;
 				}
 				students.add(student);
@@ -159,8 +186,8 @@ public class StudentService implements IStudentService {
 				}
 			}
 			if (updateArray.size() > 0) {
-				session.setAttribute("_retain_import_students", students);
-				result.setSuccess(true);
+				session.setAttribute(Constants.SESSION_IMPORT_STUDENT_NAME, students);
+				result.setSuccess(false);
 			} else {
 				TransactionManager.callInTransaction(studentDao.getConnectionSource(), new Callable<Void>() {
 		            public Void call() throws Exception {
@@ -174,7 +201,7 @@ public class StudentService implements IStudentService {
 				jsonObject.put("msg", "新增学生信息" + newCount + "条");
 			}
 		}
-		jsonObject.put("erros", errorArray);
+		jsonObject.put("errors", errorArray);
 		jsonObject.put("confirms", updateArray);
 		result.setInfo(jsonObject);
 		return result;
@@ -199,8 +226,8 @@ public class StudentService implements IStudentService {
 	}
 	
 	private Integer getStatus(String statusName) {
-		if (StringUtils.isNotBlank(statusName)) {
-			return null;
+		if (StringUtils.isBlank(statusName)) {
+			return 0;
 		}
 		if(statusName.equals("在校")) {
 			return 0;
@@ -218,8 +245,71 @@ public class StudentService implements IStudentService {
 	}
 
 	@Override
-	public JsonResult importStudents(List<Student> students) throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+	public JsonResult importStudents(final List<Student> students) throws Exception {
+	    JsonResult result = new JsonResult();
+	    List<Student> oldStudentList = studentDao.queryForAll();
+        int newCount = 0,updateCount = 0;
+        Date now = new Date();
+        for (Student student : students) {
+            int index = oldStudentList.indexOf(student);
+            if (index != -1) {
+                Student oldOne = oldStudentList.get(index);
+                student.setCreatedDate(oldOne.getCreatedDate());
+                student.setLastUpdatedDate(now);
+                student.setRemark(oldOne.getRemark());
+                updateCount++;
+            } else {
+                student.setCreatedDate(now);
+                newCount++;
+            }
+        }
+        TransactionManager.callInTransaction(studentDao.getConnectionSource(), new Callable<Void>() {
+            public Void call() throws Exception {
+                for (Student student : students) {
+                    studentDao.createOrUpdate(student);
+                }
+                return null;
+            }
+        });
+        result.setSuccess(true);
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("msg", "新增学生信息" + newCount + "条, 更新学生信息" + updateCount + "条");
+        result.setInfo(jsonObject);
+		return result;
 	}
+
+    @Override
+    public void updateStudentStatus(final String status, String studentIds, String departmentId, String year) throws Exception {
+        List<Student> list = null;
+        QueryBuilder<Student, String> query = studentDao.queryBuilder();
+        Where<Student, String> where = query.where();
+        where.raw("1=1");
+        if (StringUtils.isNotBlank(departmentId)) {
+        	where.and().eq("departmentid", Integer.valueOf(departmentId));
+        }
+        if (StringUtils.isNotBlank(year)) {
+            where.and().raw(" substr(studentid,0,5)='"+year+"'");
+        }
+        if (StringUtils.isNotBlank(studentIds)) {
+        	where.and().in("studentid", studentIds.split(","));
+        }
+        list = studentDao.query(query.setCountOf(false).prepare());
+        if (list == null) {
+        	return;
+        }
+        final List<Student> students = list;
+        final Date now = new Date();
+        TransactionManager.callInTransaction(studentDao.getConnectionSource(), new Callable<Void>() {
+            public Void call() throws Exception {
+                for (Student student : students) {
+                	if (!student.getStatus().toString().equals(status)) {
+                		 student.setStatus(Integer.valueOf(status));
+                		 student.setLastUpdatedDate(now);
+                         studentDao.update(student);
+                	}
+                }
+                return null;
+            }
+        });
+    }
 }

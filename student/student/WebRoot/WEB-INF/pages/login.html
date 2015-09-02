@@ -3,7 +3,7 @@
 	<head>
 		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
 		<meta charset="utf-8" />
-		<title>学生收费系统</title>
+		<title>自助收缴系统</title>
 
 		<meta name="description" content="User login page" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
@@ -49,9 +49,8 @@
 							<div class="center">
 								<h1>
 									<i class="ace-icon fa fa-leaf green"></i>
-									<span class="white" id="id-text2">学生收费系统</span>
+									<span class="white" id="id-text2">自助收缴系统</span>
 								</h1>
-								<h4 class="blue" id="id-company-text">&copy; Mountain Fastness Networks Ltd.</h4>
 							</div>
 
 							<div class="space-6"></div>
@@ -86,7 +85,7 @@
 													<div class="space"></div>
 
 													<div class="clearfix">
-														<button type="submit" class="width-35 pull-right btn btn-sm btn-primary">
+														<button type="button" class="width-35 pull-right btn btn-sm btn-primary">
 															<i class="ace-icon fa fa-key"></i>
 															<span class="bigger-110">登录</span>
 														</button>
@@ -119,7 +118,13 @@
 				</div><!-- /.row -->
 			</div><!-- /.main-content -->
 		</div><!-- /.main-container -->
-
+		<div class="footer">
+			<div class="footer-inner">
+				<div class="footer-content">
+					<h4 class="blue" id="id-company-text">&copy; Hubei Wisdom Union Hi-Tech CO.,Ltd.</h4>
+				</div>
+			</div>
+		</div>
 		<!-- basic scripts -->
 
 		<!--[if !IE]> -->
@@ -132,6 +137,7 @@
 		<!--[if IE]>
 <script type="text/javascript">
  window.jQuery || document.write("<script src='assets/js/jquery1x.min.js'>"+"<"+"/script>");
+ window.jQuery || document.write("<script src='assets/js/placeholdr.min.js'>"+"<"+"/script>");
 </script>
 <![endif]-->
 		<script type="text/javascript">
@@ -143,7 +149,6 @@
 		<!-- inline scripts related to this page -->
 		<script type="text/javascript">
 			jQuery(function($) {
-				$('#in_user').focus();
 				var validator = $('#login-form').validate({
 					errorClass: 'form-error',
 					focusInvalid: false,
@@ -162,8 +167,10 @@
 						in_pwd: {
 							required: "请输入密码."
 						}
-					},
-					submitHandler: function(form) {     
+					} 
+				});
+				$("button").on("click",function(){
+					if (validator.form()) {
 						$.post("", $("#login-form").serialize(), function(data){
 							if(data.success){
 								window.location.href="ajax";
@@ -174,7 +181,7 @@
 								});
 							}
 						},'json');
-					}  
+					}
 				});
 			});
 			

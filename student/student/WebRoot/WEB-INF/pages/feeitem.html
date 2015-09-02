@@ -24,10 +24,87 @@
 		<!-- PAGE CONTENT ENDS -->
 	</div><!-- /.col -->
 </div><!-- /.row -->
+<div id="import-modal-form" class="modal" tabindex="-1">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<form class="form-horizontal" id="import-form" enctype="multipart/form-data">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" onclick="javascript:$('#import-modal-form').hide();">&times;</button>
+				<h4 class="blue bigger">导入Excel文件</h4>
+			</div>
+			<div class="modal-body">
+				<div class="row">
+					<div class="col-xs-12">
+						<div class="form-group">
+							<label class="col-sm-3 control-label no-padding-right" for="stu_excel"> Excel文件 </label>
+							<div class="col-sm-7">
+								<input type="file" id="stu_excel" name="file"/>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="well">
+					<h4 class="red smaller lighter">Excel格式要求</h4>
+					<ul class="list-unstyled spaced2">
+						<li>
+							<i class="ace-icon fa fa-circle green"></i>
+							第一行为表头，所有单元格必须为文本格式，金额除外，金额最多两位小数
+						</li>
+						<li>
+							<i class="ace-icon fa fa-circle green"></i>
+							共4列，依次为收费项目ID、收费项目名称、金额(元)、备注
+						</li>
+						<li>
+							<i class="ace-icon fa fa-circle green"></i>
+							工作表(Sheet)数量不限
+						</li>
+					</ul>
+				</div>
+				<div class="alert alert-success" id="import_success_tip">
+					<strong>
+						<i class="ace-icon fa fa-check"></i>
+						提示：
+					</strong>
+					<label id="import_success_tip_text"></label>
+					<br />
+				</div>
+				<div class="alert alert-danger" id="import_error_tip">
+					<strong>
+						<i class="ace-icon fa fa-times"></i>
+						提示：
+					</strong>
+					<label id="import_error_tip_text"></label>
+					<br />
+				</div>
+				<div class="alert alert-warning" id="import_warning_tip">
+					<p>
+						<strong>提示：</strong>
+						<label id="import_warning_tip_text"></label>
+					</p>
+					<p>
+						<button class="btn btn-sm btn-success" id="import_confirm_btn" type="button">确认</button>
+						<button class="btn btn-sm" data-hide="alert" type="button">取消</button>
+					</p>
+				</div>				
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-sm" data-dismiss="modal" onclick="javascript:$('#import-modal-form').hide();">
+					<i class="ace-icon fa fa-times"></i>
+					取消
+				</button>
 
+				<button class="btn btn-sm btn-primary" type="button" id="import_btn">
+					<i class="ace-icon fa fa-check"></i>
+					上传
+				</button>
+			</div>
+			</form>
+		</div>
+	</div>
+</div>
 <!-- page specific plugin scripts -->
 <script type="text/javascript">
-	var scripts = [null,"assets/js/jqGrid/jquery.jqGrid.min.js","assets/js/jqGrid/i18n/grid.locale-cn.js", null]
+	var scripts = [null,"assets/js/jquery.form.min.js","assets/js/jqGrid/jquery.jqGrid.min.js","assets/js/jqGrid/i18n/grid.locale-cn.js", null]
 	$('.page-content-area').ace_ajax('loadScripts', scripts, function() {
 	  //inline scripts related to this page
 	jQuery(function($) {
@@ -53,11 +130,11 @@
 			datatype: "json",
 			mtype: "GET",
 			height: 330,
-			colNames:['收费项目ID','收费项目名称','价格(元)','备注','创建时间'],
+			colNames:['收费项目ID','收费项目名称','金额(元)','备注','创建时间'],
 			colModel:[
-				{name:'itemId',index:'itemId',width:90, editable:true,editoptions:{size:"20",maxlength:"10"},editrules:{required:true,custom:true,custom_func:function(val,colName){var patrn = /^[A-Za-z0-9_]+$/;if(!patrn.test(val)) return [false,"收费项目ID:必须为数字或字母"];return [true];}}},
-				{name:'itemName',index:'itemName', width:150,editable: true,editoptions:{size:"20",maxlength:"64"},editrules:{required:true}},
-				{name:'price',index:'price', width:100, sortable:true,editable: true, editoptions:{size:"20",maxlength:"10"},editrules:{required:true,number:true},search:false},
+				{name:'itemId',index:'itemId',width:90, editable:true,editoptions:{size:"20",maxlength:"30"},editrules:{required:true,custom:true,custom_func:function(val,colName){var patrn = /^[A-Za-z0-9_]+$/;if(!patrn.test(val)) return [false,"收费项目ID:必须为数字或字母"];return [true];}}},
+				{name:'itemName',index:'itemName', width:150,editable: true,editoptions:{size:"20",maxlength:"60"},editrules:{required:true}},
+				{name:'price',index:'price', width:100, sortable:true,editable: true, editoptions:{size:"20",maxlength:"10"},editrules:{required:true,custom:true,custom_func:function(val,colName){var patrn = /(^[1-9]\d*(\.\d{1,2})?$)|(^[0]{1}(\.\d{1,2})?$)/;if(!patrn.test(val)) return [false,"金额:必须为正数且最多两位小数"];return [true];}},formatter:function(val){return (val/1000).toFixed(2);},search:false},
 				{name:'remark',index:'remark', width:150, sortable:false,editable: true,edittype:"textarea", editoptions:{style:"width:180px",rows:"2",cols:"10",maxlength:"512"},search:false},
 				{name:'createdDate',index:'createdDate',width:90, search:false},
 			],
@@ -174,10 +251,102 @@
 				multipleSearch: true
 			}, {
 			}
-		)
+		).navSeparatorAdd(pager_selector).navButtonAdd(pager_selector,{
+			caption:"", 
+			title:"导入Excel",
+			buttonicon:"ace-icon fa fa-upload purple", 
+			position:"last", 
+			onClickButton: function(){
+				$("#import-modal-form").show();
+				$("#import-form").trigger("reset");
+				$("div.alert").hide();
+				$("#stu_excel").ace_file_input({
+					no_file:'请选择 ...',
+					btn_choose:'选择',
+					btn_change:'重选',
+					droppable:false,
+					onchange:null,
+					thumbnail:false,
+					allowExt:['xls']
+				});
+				$("#stu_excel").ace_file_input('reset_input_ui');
+			}
+		});
 	
-	
-		
+		$("#import_btn").on("click",function(){
+			$("div.alert").hide();
+			if (!$("#stu_excel").val()) {
+				$("#import_error_tip").show();
+				$("#import_error_tip_text").text("请先选择Excel文件");
+				return;
+			}
+			$("#import_btn").attr("disabled",true); 
+			$("#import-form").ajaxSubmit({
+		        type:"post",
+		        url:"feeitem/import",
+		        dataType:"json",
+		        success: function(result){
+		        	$("#import_btn").attr("disabled",false); 
+		        	if(result.success) {
+		        		$("#import_success_tip").show();
+		        		var msg = result.info.msg;
+		        		if (result.info.errors&&result.info.errors.length>0) {
+		        			msg+="<br/>";
+		        			msg+=result.info.errors.join("<br/>");
+		        		}
+		        		$("#import_success_tip_text").html(msg);
+		        		setTimeout('$("#import-modal-form").hide();$("#grid-table").trigger("reloadGrid");',5000);
+		        	} else {
+		        		var msg = result.info.msg;
+		        		if (result.info.confirms&&result.info.confirms.length>0) {
+		        			$("#import_warning_tip").show();
+		        			$("#import_warning_tip_text").html("收费项目Id["+result.info.confirms.join(",")+"]已存在，是否执行更新操作?");
+		        		} else if (result.info.errors&&result.info.errors.length>0) {
+		        			msg+="<br/>";
+		        			msg+=result.info.errors.join("<br/>");
+		        			$("#import_error_tip").show();
+		        			$("#import_error_tip_text").html(msg);
+		        		} else {
+		        			$("#import_error_tip").show();
+		        			$("#import_error_tip_text").html(msg);
+		        		}
+		        	}
+		        }
+			});
+		});
+		$("#import_confirm_btn").on("click",function(){
+			$("div.alert").hide();
+			if (!$("#stu_excel").val()) {
+				$("#import_error_tip").show();
+				$("#import_error_tip_text").text("请先选择Excel文件");
+				return;
+			}
+			$("#import-form").ajaxSubmit({
+		        type:"post",
+		        url:"feeitem/import?confirm=true",
+		        dataType:"json",
+		        success: function(result){
+		        	if(result.success) {
+		        		$("#import_success_tip").show();
+		        		var msg = result.info.msg;
+		        		if (result.info.errors&&result.info.errors.length>0) {
+		        			msg+="<br/>";
+		        			msg+=result.info.errors.join("<br/>");
+		        		}
+		        		$("#import_success_tip_text").html(msg);
+		        		setTimeout('$("#import-modal-form").hide();$("#grid-table").trigger("reloadGrid");',5000);
+		        	} else {
+		        		var msg = result.info.msg;
+		        		if (result.info.errors&&result.info.errors.length>0) {
+		        			msg+="<br/>";
+		        			msg+=result.info.errors.join("<br/>");
+		        			$("#import_error_tip").show();
+		        			$("#import_error_tip_text").html(msg);
+		        		}
+		        	}
+		        }
+			});
+		});
 		function style_edit_form(form) {
 			//update buttons classes
 			var buttons = form.next().find('.EditButton .fm-button');

@@ -2,12 +2,13 @@ package net.student.model;
 
 import java.util.Date;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
 /**
- * 待缴费账单实体类
+ * 已缴费账单实体类
  * @author 果冻
  *
  */
@@ -19,6 +20,8 @@ public class PaidLog {
 	private Student student;
 	@DatabaseField(canBeNull = false, foreign = true, foreignAutoRefresh = true, columnName = "itemid")
 	private FeeItem feeItem;
+	@DatabaseField(canBeNull = false, columnName = "paidfee")
+	private Long paidFee;
 	@DatabaseField(canBeNull = false, columnName = "price")
 	private Long price;
 	@DatabaseField(canBeNull = false, dataType = DataType.DATE_STRING, columnName = "createddate")
@@ -51,12 +54,14 @@ public class PaidLog {
 	public void setPrice(Long price) {
 		this.price = price;
 	}
+	@JsonFormat(pattern="yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
 	public Date getCreatedDate() {
 		return createdDate;
 	}
 	public void setCreatedDate(Date createdDate) {
 		this.createdDate = createdDate;
 	}
+	@JsonFormat(pattern="yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
 	public Date getPayDate() {
 		return payDate;
 	}
@@ -73,6 +78,12 @@ public class PaidLog {
 	public String toString() {
 		return "PaidLog [logId=" + logId + ", student=" + student + ", feeItem=" + feeItem + ", price=" + price
 				+ ", createdDate=" + createdDate + ", payDate=" + payDate + ", serialNo=" + serialNo + "]";
+	}
+	public Long getPaidFee() {
+		return paidFee;
+	}
+	public void setPaidFee(Long paidFee) {
+		this.paidFee = paidFee;
 	}
 	
 }

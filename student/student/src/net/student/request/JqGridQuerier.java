@@ -21,14 +21,14 @@ public class JqGridQuerier<T, PK> {
     public static final String OPER_ADD = "add";
     public static final String OPER_UPDATE = "edit";
     public static final String OPER_DEL = "del";
-    private final String EQ = "eq";
-    private final String NE = "ne";
-    private final String LT = "lt";
-    private final String LE = "le";
-    private final String GT = "gt";
-    private final String GE = "ge";
-    private final String CN = "cn";
-    private final String NC = "nc";
+    public static final String EQ = "eq";
+    public static final String NE = "ne";
+    public static final String LT = "lt";
+    public static final String LE = "le";
+    public static final String GT = "gt";
+    public static final String GE = "ge";
+    public static final String CN = "cn";
+    public static final String NC = "nc";
     private String _search;
     private String sidx;// 排序字段
     private String sord;// 排序顺序asc/desc
@@ -54,6 +54,9 @@ public class JqGridQuerier<T, PK> {
 
     private void toCriterion(JqGridFilter filter, Where<T, PK> where) throws Exception {
         for (JqGridRule rule : filter.getRules()) {
+        	if (rule.getField().startsWith("_")) {
+        		continue;
+        	}
             if (rule.getOp().equals(EQ) || rule.getOp().equals(NE) || rule.getOp().equals(LT)
                 || rule.getOp().equals(LE) || rule.getOp().equals(GT) || rule.getOp().equals(GE)) {
                 this.getDateCritrion(rule, where);

@@ -3,22 +3,23 @@ package net.student.service.impl;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.student.constants.CustomerException;
-import net.student.model.Department;
-import net.student.model.User;
-import net.student.request.JqGridQuerier;
-import net.student.response.QueryResult;
-import net.student.service.IDepartmentService;
-
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.alibaba.fastjson.JSONObject;
 import com.j256.ormlite.dao.Dao;
+import com.j256.ormlite.dao.GenericRawResults;
 import com.j256.ormlite.stmt.PreparedQuery;
 import com.j256.ormlite.stmt.QueryBuilder;
 import com.j256.ormlite.stmt.Where;
+
+import net.student.constants.CustomerException;
+import net.student.model.Department;
+import net.student.model.User;
+import net.student.request.JqGridQuerier;
+import net.student.response.QueryResult;
+import net.student.service.IDepartmentService;
 /**
  * 部门Service实现类
  * @author 果冻
@@ -115,7 +116,15 @@ public class DepartmentService implements IDepartmentService {
         if (user.getUserType() == User.USERTYPE_ADMIN) {
             list = departmentDao.queryForAll();
         } else {
-//            list = departmentDao.
+        	list = new ArrayList<Department>();
+        	GenericRawResults<String[]> rawResult = departmentDao.queryRaw("select d.departmentid, d.departmentname from department d"+
+        			" where exists (select 1 from userdepartment u where u.userid=? and u.departmentid=d.departmentid)", user.getUserId().toString());
+        	for (String[] raws : rawResult) {
+        		Department department = new Department();
+        		department.setDepartmentId(Integer.valueOf(raws[0]));
+        		department.setDepartmentName(raws[1]);
+        		list.add(department);
+        	}
         }
         if (list != null) {
             for (Department department : list) {

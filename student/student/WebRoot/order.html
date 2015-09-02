@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>支付中转页面</title>
+<!--[if !IE]> -->
+<script type="text/javascript">
+	document.write("<script src='assets/js/jquery.min.js'>"+"<"+"/script>");
+</script>
+<!-- <![endif]-->
+
+<!--[if IE]>
+<script type="text/javascript">
+document.write("<script src='assets/js/jquery1x.min.js'>"+"<"+"/script>");
+</script>
+<![endif]-->
+<script type="text/javascript">
+jQuery(function($){
+	$.post('student/order',{paymentId:getQueryString("paymentId")},function(htmlStr){
+		$("body").append(htmlStr);
+	},"text");
+});
+
+function getQueryString(name) {
+    var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+    var r = window.location.search.substr(1).match(reg);
+    if (r != null) return unescape(r[2]);
+    return null;
+}
+</script>
+</head>
+<body>
+</body>
+</html>

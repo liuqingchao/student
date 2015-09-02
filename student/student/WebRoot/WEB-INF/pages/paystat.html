@@ -1,0 +1,175 @@
+<link rel="stylesheet" href="assets/css/ui.jqgrid.min.css" />
+<!-- ajax layout which only needs content area -->
+<div class="page-header">
+	<h1>
+		已缴费信息
+	</h1>
+</div><!-- /.page-header -->
+
+<div class="row">
+	<div class="col-xs-12">
+
+		<table id="grid-table"></table>
+
+		<div id="grid-pager"></div>
+
+		<!-- PAGE CONTENT ENDS -->
+	</div><!-- /.col -->
+</div><!-- /.row -->
+<!-- page specific plugin scripts -->
+<script type="text/javascript">
+var scripts = [null,"assets/js/jqGrid/jquery.jqGrid.min.js","assets/js/jqGrid/i18n/grid.locale-cn.js","assets/js/bootbox.min.js", null];
+$('.page-content-area').ace_ajax('loadScripts', scripts, function() {
+	var selectFeeItem;
+	$.when($.get("feeitem/select", function(data){
+		var jsonData = $.parseJSON(data);
+		selectFeeItem = jsonData[0];
+	},'text')).done(function(){
+		jQuery(function($) {
+			var grid_selector = "#grid-table";
+			var pager_selector = "#grid-pager";
+			
+			//resize to fit page size
+			$(window).on('resize.jqGrid', function () {
+				$(grid_selector).jqGrid( 'setGridWidth', $(".page-content").width());
+		    });
+			//resize on sidebar collapse/expand
+			var parent_column = $(grid_selector).closest('[class*="col-"]');
+			$(document).on('settings.ace.jqGrid' , function(ev, event_name, collapsed) {
+				if( event_name === 'sidebar_collapsed' || event_name === 'main_container_fixed' ) {
+					//setTimeout is for webkit only to give time for DOM changes and then redraw!!!
+					setTimeout(function() {
+						$(grid_selector).jqGrid( 'setGridWidth', parent_column.width() );
+					}, 0);
+				}
+		    });
+			jQuery(grid_selector).jqGrid({
+				url: "paystat",
+				datatype: "json",
+				mtype: "GET",
+				height: 330,
+				colNames:['统计日','收费项目','总金额(元)','总数','最近缴费时间','最近支付订单号'],
+				colModel:[
+					{name:'statDay',index:'statday',editable: false, width:70,searchoptions:{sopt:['eq','ne','lt','le','gt','ge']}},
+					{name:'feeItemId',index:'itemname', width:60, editable: false,formatter:function(val,ops,row){return '<a title="'+row.feeItemDesc+'" data-rel="tooltip" data-placement="bottom" href="#">'+selectFeeItem[val]+'</a>';},stype:'select',searchoptions:{value:selectFeeItem,sopt:['eq','ne']}},
+					{name:'amount',index:'amount', width:60, editable: false,formatter:function(val){return (val/1000).toFixed(2);}, search:false},
+					{name:'count',index:'count', width:60, editable: false, search:false},
+					{name:'lastPayDate',index:'lastpaydate', width:90, editable: false, search:false},
+					{name:'lastOrderId',index:'lastorderid', width:90,editable: false, search:false}
+				], 
+				rownumbers: true,
+				viewrecords : true,
+				rowNum:10,
+				rowList:[10,20,30],
+				pager : pager_selector,
+				altRows: true,
+				loadComplete : function() {
+					var table = this;
+					setTimeout(function(){
+						updatePagerIcons(table);
+						enableTooltips(table);
+					}, 0);
+				},
+				caption: "缴费统计列表",
+				jsonReader: {
+					root: "rows", 
+					page: "page", 
+					total: "total", 
+					records: "records",
+					id: "statId",
+					repeatitems:false
+				}
+			});
+			$(window).triggerHandler('resize.jqGrid');//trigger window resize to make the grid get the correct size
+			$("#jqgh_grid-table_cb").attr("style","padding-left:4px;margin-bottom:20px;");
+			//navButtons
+			jQuery(grid_selector).jqGrid('navGrid',pager_selector,
+				{ 	//navbar options
+					edit: false,
+					add: false,
+					del: false,
+					search: true,
+					searchicon : 'ace-icon fa fa-search orange',
+					refresh: true,
+					refreshicon : 'ace-icon fa fa-refresh green'
+				}, {
+				}, {
+				}, {
+				}, {
+					//search form
+					recreateForm: true,
+					closeAfterSearch: true,
+					afterShowSearch: function(e){
+						var form = $(e[0]);
+						form.closest('.ui-jqdialog').find('.ui-jqdialog-title').wrap('<div class="widget-header" />');
+						style_search_form(form);
+					},
+					afterRedraw: function(){
+						style_search_filters($(this));
+					},
+					multipleSearch: true
+				}, {
+				
+				}
+			).navSeparatorAdd(pager_selector).navButtonAdd(pager_selector,{
+				caption:"", 
+				title:"导出Excel",
+				buttonicon:"ace-icon fa fa-file-excel-o green", 
+				position:"last", 
+				onClickButton: function(){
+					var postData = $(grid_selector).getGridParam("postData");
+					$.post('paystat/excel',postData,function(result){
+						if (result.success) {
+							window.location.href=result.info.url;
+						} else {
+							bootbox.alert(result.info.msg);
+						}
+					},"json");
+				}
+			});
+			function style_search_filters(form) {
+				form.find('.delete-rule').val('X');
+				form.find('.add-rule').addClass('btn btn-xs btn-primary');
+				form.find('.add-group').addClass('btn btn-xs btn-success');
+				form.find('.delete-group').addClass('btn btn-xs btn-danger');
+			}
+			function style_search_form(form) {
+				var dialog = form.closest('.ui-jqdialog');
+				var buttons = dialog.find('.EditTable');
+				buttons.find('.EditButton a[id*="_reset"]').addClass('btn btn-sm btn-info').find('.ui-icon').attr('class', 'ace-icon fa fa-retweet');
+				buttons.find('.EditButton a[id*="_query"]').addClass('btn btn-sm btn-inverse').find('.ui-icon').attr('class', 'ace-icon fa fa-comment-o');
+				buttons.find('.EditButton a[id*="_search"]').addClass('btn btn-sm btn-purple').find('.ui-icon').attr('class', 'ace-icon fa fa-search');
+			}
+			
+			//replace icons with FontAwesome icons like above
+			function updatePagerIcons(table) {
+				var replacement = 
+				{
+					'ui-icon-seek-first' : 'ace-icon fa fa-angle-double-left bigger-140',
+					'ui-icon-seek-prev' : 'ace-icon fa fa-angle-left bigger-140',
+					'ui-icon-seek-next' : 'ace-icon fa fa-angle-right bigger-140',
+					'ui-icon-seek-end' : 'ace-icon fa fa-angle-double-right bigger-140'
+				};
+				$('.ui-pg-table:not(.navtable) > tbody > tr > .ui-pg-button > .ui-icon').each(function(){
+					var icon = $(this);
+					var $class = $.trim(icon.attr('class').replace('ui-icon', ''));
+					
+					if($class in replacement) icon.attr('class', 'ui-icon '+replacement[$class]);
+				});
+			}
+		
+			function enableTooltips(table) {
+				$('.navtable .ui-pg-button').tooltip({container:'body'});
+				$(table).find('.ui-pg-div').tooltip({container:'body'});
+				$('[data-rel=tooltip]').tooltip();
+			}
+			
+			$(document).one('ajaxloadstart.page', function(e) {
+				$(grid_selector).jqGrid('GridUnload');
+				$('.ui-jqdialog').remove();
+			});
+		});
+	});
+});
+
+</script>

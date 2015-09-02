@@ -32,7 +32,7 @@ $('.page-content-area').ace_ajax('loadScripts', scripts, function() {
 	$.when($.get("department/select", function(data){
 		selectDepartment = $.parseJSON(data);
 	},'text'), $.get("feeitem/select", function(data){
-		selectFeeItem = $.parseJSON(data);
+		selectFeeItem = $.parseJSON(data)[0];
 	},'text')).done(function(){
 		jQuery(function($) {
 			var grid_selector = "#grid-table";
@@ -57,7 +57,7 @@ $('.page-content-area').ace_ajax('loadScripts', scripts, function() {
 				datatype: "json",
 				mtype: "GET",
 				height: 330,
-				colNames:['','操作员代码','操作员名称','密码', '确认密码', '状态', '管理部门','管理费用','创建日期', '备注'],
+				colNames:['','操作员代码','操作员名称','密码', '确认密码', '状态', '管理部门','管理费用','创建日期', '备注','权限'],
 				colModel:[
 					{name:'userId',index:'userId',hidden:true, editable:true},
 					{name:'userCode',index:'userCode',width:90, editable:true,editoptions:{size:"20",maxlength:"64"},editrules:{required:true,custom:true,custom_func:function(val,colName){var patrn = /^[A-Za-z0-9_]+$/;if(!patrn.test(val)) return [false,"操作员代码:必须为数字或字母"];return [true];}},searchoptions:{sopt:['eq','ne','cn','nc']}},
@@ -68,7 +68,8 @@ $('.page-content-area').ace_ajax('loadScripts', scripts, function() {
 					{name:'departments',index:'departments',search:false,hidden:true, editable:true,edittype:'select',editoptions: {multiple:"","class":"chosen-select",value:selectDepartment},editrules:{edithidden: true}},
 					{name:'feeitems',index:'feeitems',search:false,hidden:true, editable:true,edittype:'select',editoptions: {multiple:"","class":"chosen-select",value:selectFeeItem},editrules:{edithidden: true}},
 					{name:'createdDate',index:'createdDate',width:90, search:false},
-					{name:'userDesc',index:'userDesc', width:150, sortable:false,editable: true,edittype:"textarea", editoptions:{style:"width:180px",rows:"2",cols:"10",maxlength:"512"},search:false}
+					{name:'userDesc',index:'userDesc', width:150, sortable:false,editable: true,edittype:"textarea", editoptions:{style:"width:180px",rows:"2",cols:"10",maxlength:"512"},search:false},
+					{name:'userId',width:90, search:false,edit:false,formatter:function(val,opt,row){var departmentNames=[],feeItemNames=[];var departmentIds = row.departments.split(",");for (var i=0;i<departmentIds.length;i++){departmentNames[i]=selectDepartment[departmentIds[i]];}var feeItemIds = row.feeitems.split(",");for (var i=0;i<feeItemIds.length;i++){feeItemNames[i]=selectFeeItem[feeItemIds[i]];}return "<a class='ace-icon fa fa-info-circle blue' data-rel='tooltip' data-placement='bottom' href='#' title='部门:"+departmentNames+"\n收费项目:"+feeItemNames+"'></a>";}}
 				], 
 				rownumbers:true,
 				viewrecords : true,
@@ -265,6 +266,7 @@ $('.page-content-area').ace_ajax('loadScripts', scripts, function() {
 			function enableTooltips(table) {
 				$('.navtable .ui-pg-button').tooltip({container:'body'});
 				$(table).find('.ui-pg-div').tooltip({container:'body'});
+				$('[data-rel=tooltip]').tooltip();
 			}
 		
 			//var selr = jQuery(grid_selector).jqGrid('getGridParam','selrow');

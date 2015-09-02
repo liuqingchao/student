@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import com.google.code.kaptcha.Producer;
@@ -23,6 +24,10 @@ import com.j256.ormlite.table.TableUtils;
 
 import net.student.model.Department;
 import net.student.model.FeeItem;
+import net.student.model.OffLinePaidLog;
+import net.student.model.PaidLog;
+import net.student.model.PayStat;
+import net.student.model.Payment;
 import net.student.model.Student;
 import net.student.model.User;
 import net.student.model.UserDepartment;
@@ -32,6 +37,7 @@ import net.student.model.UserLog;
 @Configuration
 @ComponentScan("net.student")
 @Import({DataSourceConfig.class, MvcConfig.class})
+@EnableScheduling
 @EnableWebMvc
 public class ApplicationContextConfig {
     @Autowired
@@ -80,8 +86,28 @@ public class ApplicationContextConfig {
     }
     
     @Bean
+    public Dao<Payment, Integer> paymentDao() throws SQLException {
+        return DaoManager.createDao(dataSourceConfig.dataSource(), Payment.class);
+    }
+    
+    @Bean
+    public Dao<PaidLog, Integer> paidLogDao() throws SQLException {
+        return DaoManager.createDao(dataSourceConfig.dataSource(), PaidLog.class);
+    }
+    
+    @Bean
+    public Dao<PayStat, Integer> payStatDao() throws SQLException {
+        return DaoManager.createDao(dataSourceConfig.dataSource(), PayStat.class);
+    }
+    
+    @Bean
+    public Dao<OffLinePaidLog, Integer> offLinePaidLogDao() throws SQLException {
+        return DaoManager.createDao(dataSourceConfig.dataSource(), OffLinePaidLog.class);
+    }
+    
+    @Bean
     public TableCreator tableCreator() throws SQLException {
-//    	TableUtils.dropTable(dataSourceConfig.dataSource(), User.class, true);
+//    	TableUtils.dropTable(dataSourceConfig.dataSource(), Payment.class, true);
 //    	TableUtils.dropTable(dataSourceConfig.dataSource(), Student.class, true);
         TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), User.class);
         TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), Department.class);
@@ -89,6 +115,10 @@ public class ApplicationContextConfig {
         TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), FeeItem.class);
         TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), UserDepartment.class);
         TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), UserFeeItem.class);
+        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), Payment.class);
+        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), PaidLog.class);
+        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), PayStat.class);
+        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), OffLinePaidLog.class);
         if (userDao().countOf() == 0) {
             User user = new User();
             user.setUserName("管理员");

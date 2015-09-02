@@ -1,0 +1,677 @@
+<link rel="stylesheet" href="assets/css/ui.jqgrid.min.css" />
+<link rel="stylesheet" href="assets/css/datepicker.min.css" />
+<link rel="stylesheet" href="assets/css/chosen.min.css" />
+<!-- ajax layout which only needs content area -->
+<style>
+<!--
+.ui-jqgrid tr.footrow td {border-color:#c7d3a9;}
+-->
+</style>
+<div class="page-header">
+	<h1>
+		未缴费信息
+	</h1>
+</div><!-- /.page-header -->
+
+<div class="row">
+	<div class="col-xs-12">
+
+		<table id="grid-table"></table>
+
+		<div id="grid-pager"></div>
+
+		<!-- PAGE CONTENT ENDS -->
+	</div><!-- /.col -->
+</div><!-- /.row -->
+<div id="import-modal-form" class="modal" tabindex="-1">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<form class="form-horizontal" id="import-form" enctype="multipart/form-data">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" onclick="javascript:$('#import-modal-form').hide();">&times;</button>
+				<h4 class="blue bigger"><i id="import-spinner"></i>导入Excel文件</h4>
+			</div>
+			<div class="modal-body">
+				<div class="row">
+					<div class="col-xs-12">
+						<div class="form-group">
+							<label class="col-sm-3 control-label no-padding-right" for="stu_excel"> Excel文件 </label>
+							<div class="col-sm-7">
+								<input type="file" id="stu_excel" name="file"/>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="well">
+					<h4 class="red smaller lighter">Excel格式要求</h4>
+					<ul class="list-unstyled spaced2">
+						<li>
+							<i class="ace-icon fa fa-circle green"></i>
+							第一行为表头，所有单元格必须为文本格式，金额除外，金额最多两位小数
+						</li>
+						<li>
+							<i class="ace-icon fa fa-circle green"></i>
+							共6列，依次为学号、费用项目ID、应缴金额(可不填，默认为费用项目的金额)、已交金额(可不填，默认为0)、缴费开始时间(格式为yyyy-MM-dd)、缴费结束时间(格式为yyyy-MM-dd)
+						</li>
+						<li>
+							<i class="ace-icon fa fa-circle green"></i>
+							工作表(Sheet)数量不限
+						</li>
+					</ul>
+				</div>
+				<div class="alert alert-success" id="import_success_tip">
+					<strong>
+						<i class="ace-icon fa fa-check"></i>
+						提示：
+					</strong>
+					<label id="import_success_tip_text"></label>
+					<br />
+				</div>
+				<div class="alert alert-danger" id="import_error_tip">
+					<strong>
+						<i class="ace-icon fa fa-times"></i>
+						提示：
+					</strong>
+					<label id="import_error_tip_text"></label>
+					<br />
+				</div>
+				<div class="alert alert-warning" id="import_warning_tip">
+					<p>
+						<strong>提示：</strong>
+						<label id="import_warning_tip_text"></label>
+					</p>
+					<p>
+						<button class="btn btn-sm btn-success" id="import_confirm_btn" type="button">确认</button>
+						<button class="btn btn-sm" data-hide="alert" type="button">取消</button>
+					</p>
+				</div>				
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-sm" data-dismiss="modal" onclick="javascript:$('#import-modal-form').hide();">
+					<i class="ace-icon fa fa-times"></i>
+					取消
+				</button>
+
+				<button class="btn btn-sm btn-primary" type="button" id="import_btn">
+					<i class="ace-icon fa fa-check"></i>
+					上传
+				</button>
+			</div>
+			</form>
+		</div>
+	</div>
+</div>
+<div id="batch-modal-form" class="modal" tabindex="-1">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<form class="form-horizontal" id="batch-form">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" onclick="javascript:$('#batch-modal-form').hide();">&times;</button>
+				<h4 class="blue bigger">批量产生未缴费信息</h4>
+			</div>
+			<div class="modal-body">
+				<div class="row">
+					<div class="col-xs-12">
+						<div class="form-group">
+							<label class="col-xs-3 control-label no-padding-right" for="stu_excel"> 部门 </label>
+							<div class="col-xs-7">
+								<select id="departmentIds" multiple="multiple" class="chosen-select"></select>
+							</div>
+						</div>
+						<div class="form-group">
+				          	<label class="col-xs-3 control-label" for="studentIds">学号:</label>
+				          	<div class="col-xs-7">
+				          		<div class="input-group">
+				          			<input type="text" id="studentIds_start" class="form-control"/>
+				          			<span class="input-group-addon"><i class="fa fa-exchange"></i></span>
+				          			<input type="text" id="studentIds_end" class="form-control"/>
+				          		</div>
+				          	</div>
+				      	</div>
+				        <div class="form-group">
+				          	<label class="col-xs-3 control-label" for="feeItemId">费用项目:</label>
+				          	<div class="col-xs-7">
+				          		<select id="feeItemId" class="form-control"></select>
+				          	</div>
+				       	</div>
+				        <div class="form-group">
+				          	<label class="col-xs-3 control-label" for="startDate">缴费时间:</label>
+				          	<div class="col-xs-7">
+					          	<div class="input-daterange input-group">
+					          		<input type="text" id="startDate" class="form-control"/>
+					          		<span class="input-group-addon"><i class="fa fa-exchange"></i></span>
+					          		<input type="text" id="endDate" class="form-control"/>
+					          	</div>
+				       		</div>
+						</div>
+					</div>
+				</div>
+				<div class="alert alert-success" id="batch_success_tip">
+					<strong>
+						<i class="ace-icon fa fa-check"></i>
+						提示：
+					</strong>
+					<label id="batch_success_tip_text"></label>
+					<br />
+				</div>
+				<div class="alert alert-danger" id="batch_error_tip">
+					<strong>
+						<i class="ace-icon fa fa-times"></i>
+						提示：
+					</strong>
+					<label id="batch_error_tip_text"></label>
+					<br />
+				</div>
+				<div class="alert alert-warning" id="batch_warning_tip">
+					<p>
+						<strong>提示：</strong>
+						<label id="batch_warning_tip_text"></label>
+					</p>
+					<p>
+						<button class="btn btn-sm btn-success" id="batch_confirm_btn" type="button">确认</button>
+						<button class="btn btn-sm" data-hide="alert" type="button">取消</button>
+					</p>
+				</div>			
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-sm" data-dismiss="modal" onclick="javascript:$('#batch-modal-form').hide();">
+					<i class="ace-icon fa fa-times"></i>
+					取消
+				</button>
+
+				<button class="btn btn-sm btn-primary" type="button" id="batch_btn">
+					<i class="ace-icon fa fa-check"></i>
+					生成
+				</button>
+			</div>
+			</form>
+		</div>
+	</div>
+</div>
+<!-- page specific plugin scripts -->
+<script type="text/javascript">
+var scripts = [null,"assets/js/date-time/bootstrap-datepicker.min.js","assets/js/date-time/bootstrap-datepicker.zh-CN.min.js","assets/js/jquery.form.min.js","assets/js/jqGrid/jquery.jqGrid.min.js","assets/js/jqGrid/i18n/grid.locale-cn.js","assets/js/bootbox.min.js","assets/js/chosen.jquery.min.js", null];
+$('.page-content-area').ace_ajax('loadScripts', scripts, function() {
+	var selectDepartment, selectFeeItem,selectPrice,isNormalUser;
+	$.when($.get("department/select", function(data){
+		selectDepartment = $.parseJSON(data);
+	},'text'), $.get("feeitem/select", function(data){
+		var jsonData = $.parseJSON(data);
+		selectFeeItem = jsonData[0];
+		selectPrice = jsonData[1];
+	},'text'),$.get('login/current',function(data){
+		if(data.success){
+			isNormalUser = (data.info.userType==1);
+		}
+	},'json')).done(function(){
+		jQuery(function($) {
+			 $("[data-hide]").on("click", function(){
+		        $("." + $(this).attr("data-hide")).hide();
+		        // -or-, see below
+		        // $(this).closest("." + $(this).attr("data-hide")).hide();
+		    });
+			var grid_selector = "#grid-table";
+			var pager_selector = "#grid-pager";
+			
+			//resize to fit page size
+			$(window).on('resize.jqGrid', function () {
+				$(grid_selector).jqGrid( 'setGridWidth', $(".page-content").width());
+		    });
+			//resize on sidebar collapse/expand
+			var parent_column = $(grid_selector).closest('[class*="col-"]');
+			$(document).on('settings.ace.jqGrid' , function(ev, event_name, collapsed) {
+				if( event_name === 'sidebar_collapsed' || event_name === 'main_container_fixed' ) {
+					//setTimeout is for webkit only to give time for DOM changes and then redraw!!!
+					setTimeout(function() {
+						$(grid_selector).jqGrid( 'setGridWidth', parent_column.width() );
+					}, 0);
+				}
+		    });
+			jQuery(grid_selector).jqGrid({
+				url: "payment",
+				datatype: "json",
+				mtype: "GET",
+				height: 300,
+				colNames:['','学号','姓名', '部门','收费项目','收费项目','应收金额(元)','已缴金额(元)','缴费开始时间', '缴费结束时间','创建时间','缴费时间'],
+				colModel:[
+					{name:'paymentId', hidden:true, editable: true, search:false},
+					{name:'studentId',index:'studentId', width:70, editable:true,editoptions:{size:"20",maxlength:"20"},editrules:{required:true},searchoptions:{sopt:['eq','ne','cn','nc','lt','le','gt','ge']}},
+					{name:'studentName',index:'studentname', width:60, editable: true,editoptions:{readOnly:true},searchoptions:{sopt:['eq','ne','cn','nc']}},
+					{name:'departmentName',index:'departmentname',editable: false, width:80,stype:'select',searchoptions:{value:selectDepartment,sopt:['eq','ne']}},
+					{name:'itemName',index:'itemname', width:90, editable: false,formatter:function(val,ops,row){return '<a title="'+row.itemDesc+'" data-rel="tooltip" data-placement="bottom" href="#">'+val+'</a>';},searchoptions:{sopt:['eq','ne','cn','nc']}},
+					{name:'itemId',index:'itemid', width:90, hidden:true,editable: true,edittype:'select',editrules:{edithidden:true},editoptions: {value:selectFeeItem},search:false},
+					{name:'price',index:'price', width:60, editable: true,editrules:{required:true,custom:true,custom_func:function(val,colName){var patrn = /(^[1-9]\d*(\.\d{1,2})?$)|(^[0]{1}(\.\d{1,2})?$)/;if(!patrn.test(val)) return [false,"应收金额:必须为正数且最多两位小数"];return [true];}},formatter:function(val){return (val/1000).toFixed(2);}, search:false},
+					{name:'paidFee',index:'paidFee', width:60, editable: true,editoptions:{defaultValue:"0"},editrules:{required:true,custom:true,custom_func:function(val,colName){var patrn = /(^[1-9]\d*(\.\d{1,2})?$)|(^[0]{1}(\.\d{1,2})?$)/;if(!patrn.test(val)) return [false,"已缴金额:必须为正数且最多两位小数"];return [true];}},formatter:function(val){return (val/1000).toFixed(2);}, search:false},
+					{name:'startDate',index:'startDate', width:80, editable: true, search:false},
+					{name:'endDate',index:'endDate', width:80, editable: true, search:false},
+					{name:'createdDate',index:'createdDate', width:90, editable: false, search:false},
+					{name:'_isPayDate', hidden:true, editable: false, search:true,stype:'select',searchoptions:{searchhidden:true,value:{"0":"已失效","1":"未失效"},sopt:['eq']}},
+				], 
+				rownumbers: true,
+				viewrecords : true,
+				multiselect: true,
+		        multiboxonly: true,
+				rowNum:10,
+				rowList:[10,20,30],
+				pager : pager_selector,
+				altRows: true,
+				footerrow: true,
+				userDataOnFooter: true,
+				loadComplete : function() {
+					var table = this;
+					setTimeout(function(){
+						updatePagerIcons(table);
+						enableTooltips(table);
+					}, 0);
+				},
+				editurl: "payment",
+				caption: "未缴费信息列表",
+				jsonReader: {
+					root: "rows", 
+					page: "page", 
+					total: "total", 
+					records: "records",
+					userdata: "userData",
+					id: "paymentId",
+					repeatitems:false
+				}
+			});
+			$(window).triggerHandler('resize.jqGrid');//trigger window resize to make the grid get the correct size
+			$("#jqgh_grid-table_cb").attr("style","padding-left:4px;margin-bottom:20px;");
+			//navButtons
+			jQuery(grid_selector).jqGrid('navGrid',pager_selector,
+				{ 	//navbar options
+					edit: !isNormalUser,
+					editicon : 'ace-icon fa fa-pencil blue',
+					add: !isNormalUser,
+					addicon : 'ace-icon fa fa-plus-circle purple',
+					del: !isNormalUser,
+					delicon : 'ace-icon fa fa-trash-o red',
+					search: true,
+					searchicon : 'ace-icon fa fa-search orange',
+					refresh: true,
+					refreshicon : 'ace-icon fa fa-refresh green'
+				}, {
+					//edit record form
+					modal:true,
+					recreateForm: true,
+					beforeShowForm : function(e,d,s) {
+						var form = $(e[0]);
+						form.closest('.ui-jqdialog').find('.ui-jqdialog-titlebar').wrapInner('<div class="widget-header" />');
+						style_edit_form(form);
+						var rowId = jQuery(grid_selector).jqGrid('getGridParam', 'selrow');
+						var itemId = jQuery(grid_selector).jqGrid('getCell', rowId, 'itemId');
+						$('#itemId',form).val(itemId);
+					},
+					afterShowForm:function(e){
+						var form = $(e[0]);
+						$('select',form).width($('#price',form).width());
+						$('#itemId',form).on("change",function(){
+							$('#price',form).val(selectPrice[$(this).val()]);
+						});
+						$('#studentId',form).on("change",function(){
+							$.get("student/name/" + $(this).val()+"?s="+(new Date()),function(result){
+								$('#studentName',form).val(result.info.name);
+							},"json");
+						});
+					},
+					beforeSubmit:function(data, formid){
+						if($("#startDate",formid).val()>$("#endDate",formid).val()) {
+							return [false,"开始时间不得大于结束时间"];
+						}
+						return [true];
+					},
+					afterSubmit:function(res){
+						var result = $.parseJSON(res.responseText);
+						return [result.success,result.info?result.info.msg:null];
+					}
+				}, {
+					//new record form
+					modal:true,
+					closeAfterAdd: true,
+					recreateForm: true,
+					viewPagerButtons: false,
+					beforeShowForm : function(e) {
+						var form = $(e[0]);
+						form.closest('.ui-jqdialog').find('.ui-jqdialog-titlebar').wrapInner('<div class="widget-header" />');
+						style_edit_form(form);
+					},
+					afterShowForm:function(e){
+						var form = $(e[0]);
+						$('select',form).width($('#price',form).width());
+						$('#price',form).val(selectPrice[$('#itemId',form).val()]);
+						$('#itemId',form).on("change",function(){
+							$('#price',form).val(selectPrice[$(this).val()]);
+						});
+						$('#studentId',form).on("change",function(){
+							$.get("student/name/" + $(this).val()+"?s="+(new Date()),function(result){
+								$('#studentName',form).val(result.info.name);
+							},"json");
+						});
+					},
+					beforeSubmit:function(data, formid){
+						if($("#startDate",formid).val()>$("#endDate",formid).val()) {
+							return [false,"开始时间不得大于结束时间"];
+						}
+						return [true];
+					},
+					afterSubmit:function(res,postdata){
+						var result = $.parseJSON(res.responseText);
+						if (result.info&&result.info.confirm) {
+							bootbox.confirm({  
+						        buttons: {  
+						            confirm: {  
+						                label: '确认' 
+						            },  
+						            cancel: {  
+						                label: '取消' 
+						            }  
+						        },  
+						        message: result.info.msg,  
+						        callback: function(result) {  
+						            if(result) {
+						            	postdata.oper='edit';
+						                $.post('payment',postdata,function(data){
+						                	if(data.success) {
+						                		$('#editmodgrid-table').hide();
+						                	} else {
+						                		$('#FormError:first-child').text(data.info?data.info.msg:null);
+						                	}
+						                },'json');
+						            } 
+						        },  
+						        title: "提示信息",  
+						    });
+						}
+						return [result.success,result.info?result.info.msg:null];
+					}
+				}, {
+					//delete record form
+					modal:true,
+					recreateForm: true,
+					beforeShowForm : function(e) {
+						var form = $(e[0]);
+						if(form.data('styled')) return false;
+						form.closest('.ui-jqdialog').find('.ui-jqdialog-titlebar').wrapInner('<div class="widget-header" />')
+						style_delete_form(form);
+						form.data('styled', true);
+					},
+					afterSubmit:function(res){
+						var result = $.parseJSON(res.responseText);
+						return [result.success,result.info?result.info.msg:null];
+					}
+				}, {
+					//search form
+					recreateForm: true,
+					closeAfterSearch: true,
+					afterShowSearch: function(e){
+						var form = $(e[0]);
+						form.closest('.ui-jqdialog').find('.ui-jqdialog-title').wrap('<div class="widget-header" />');
+						style_search_form(form);
+					},
+					afterRedraw: function(){
+						style_search_filters($(this));
+					},
+					multipleSearch: true
+				}, {
+				
+				}
+			);
+			jQuery(grid_selector).navSeparatorAdd(pager_selector).navButtonAdd(pager_selector,{
+				caption:"", 
+				title:"导出Excel",
+				buttonicon:"ace-icon fa fa-file-excel-o green", 
+				position:"last", 
+				onClickButton: function(){
+					var postData = $(grid_selector).getGridParam("postData");
+					$.post('payment/excel',postData,function(result){
+						if (result.success) {
+							window.location.href=result.info.url;
+						} else {
+							bootbox.alert(result.info.msg);
+						}
+					},"json");
+				}
+			});
+			if (!isNormalUser) {
+				jQuery(grid_selector).navButtonAdd(pager_selector,{
+					caption:"", 
+					title:"导入Excel",
+					buttonicon:"ace-icon fa fa-upload purple", 
+					position:"last", 
+					onClickButton: function(){
+						$("#import-modal-form").show();
+						$("#import-form").trigger("reset");
+						$("div.alert").hide();
+						$("#stu_excel").ace_file_input({
+							no_file:'请选择 ...',
+							btn_choose:'选择',
+							btn_change:'重选',
+							droppable:false,
+							onchange:null,
+							thumbnail:false,
+							allowExt:['xls']
+						});
+						$("#stu_excel").ace_file_input('reset_input_ui');
+					}
+				}).navButtonAdd(pager_selector,{
+					caption:"", 
+					title:"批量生成待缴费信息",
+					buttonicon:"ace-icon fa fa-bank red", 
+					position:"last", 
+					onClickButton: function(){
+						var sels = [],sels2 = [];
+						if ($("#departmentIds").children().size()==0&&$("#departmentIds").children().size()==0){
+							for (p in selectDepartment) {
+								sels.push('<option value="'+p+'">'+selectDepartment[p]+'</option>');
+							}
+							$("#departmentIds").append(sels.join(""));
+							for (p in selectFeeItem) {
+								sels2.push('<option value="'+p+'">'+selectFeeItem[p]+'</option>');
+							}
+							$("#feeItemId").append(sels2.join(""));
+						}
+						$("#batch-modal-form").show();
+						$("#batch-form").trigger("reset");
+						$("div.alert").hide();
+						$("#departmentIds").chosen({allow_single_deselect:true,placeholder_text:"可多选"});
+						$("#departmentIds_chosen").width($("#feeItemId").width()+15);
+						$("#departmentIds").val("").trigger("chosen:updated");
+						$("#startDate,#endDate").datepicker({format:'yyyy-mm-dd',language: 'zh-CN', autoclose:true, todayHighlight: true});
+					}
+				});
+			}
+			$("#import_btn").on("click",function(){
+				$("div.alert").hide();
+				if (!$("#stu_excel").val()) {
+					$("#import_error_tip").show();
+					$("#import_error_tip_text").text("请先选择Excel文件");
+					return;
+				}
+				$("#import_btn").attr("disabled",true);
+				$("#import-spinner").addClass("ace-icon fa fa-spinner fa-spin orange bigger-125");
+				$("#import-form").ajaxSubmit({
+			        type:"post",
+			        url:"payment/import",
+			        dataType:"json",
+			        timeout: 1000*60*10,
+			        success: function(result){
+			        	$("#import_btn").attr("disabled",false);
+			        	$("#import-spinner").removeClass("ace-icon fa fa-spinner fa-spin orange bigger-125");
+			        	if(result.success) {
+			        		$("#import_warning_tip").show();
+			        		var msg = result.info.msg;
+			        		if (result.info.errors&&result.info.errors.length>0) {
+			        			msg+="<br/>";
+			        			msg+=result.info.errors.join("<br/>");
+			        		}
+			        		$("#import_warning_tip_text").html(msg);
+			        	} else {
+			        		var msg = result.info.msg;
+			        		if (result.info.errors&&result.info.errors.length>0) {
+			        			msg+="<br/>";
+			        			msg+=result.info.errors.join("<br/>");
+			        			$("#import_error_tip").show();
+			        			$("#import_error_tip_text").html(msg);
+			        		}
+			        	}
+			        }
+				});
+			});
+			$("#import_confirm_btn").on("click",function(){
+				$("div.alert").hide();
+				if (!$("#stu_excel").val()) {
+					$("#import_error_tip").show();
+					$("#import_error_tip_text").text("请先选择Excel文件");
+					return;
+				}
+				$("#import-form").ajaxSubmit({
+			        type:"post",
+			        url:"payment/import?confirm=true",
+			        dataType:"json",
+			        success: function(result){
+			        	if(result.success) {
+			        		$("#import_success_tip").show();
+			        		var msg = result.info.msg;
+			        		if (result.info.errors&&result.info.errors.length>0) {
+			        			msg+="<br/>";
+			        			msg+=result.info.errors.join("<br/>");
+			        		}
+			        		$("#import_success_tip_text").html(msg);
+			        		setTimeout('$("#import-modal-form").hide();$("#grid-table").trigger("reloadGrid");',5000);
+			        	} else {
+			        		var msg = result.info.msg;
+			        		if (result.info.errors&&result.info.errors.length>0) {
+			        			msg+="<br/>";
+			        			msg+=result.info.errors.join("<br/>");
+			        			$("#import_error_tip").show();
+			        			$("#import_error_tip_text").html(msg);
+			        		}
+			        	}
+			        }
+				});
+			});
+			$("#batch_btn").on("click",function(){
+				$("div.alert").hide();
+				if (!$("#departmentIds").val()&&!$("#studentIds_start").val()&&!$("#studentIds_end").val()) {
+					$("#batch_error_tip").show();
+        			$("#batch_error_tip_text").text("请选择部门或输入学号");
+        			return;
+				}
+				if ($("#departmentIds").val()&&($("#studentIds_start").val()||$("#studentIds_end").val())) {
+					$("#batch_error_tip").show();
+        			$("#batch_error_tip_text").text("部门和学号不能同时选择");
+        			return;
+				}
+				if ($("#studentIds_start").val()&&$("#studentIds_end").val()&&$("#studentIds_start").val()>$("#studentIds_end").val()) {
+					$("#batch_error_tip").show();
+        			$("#batch_error_tip_text").text("起始学号不能大于截止学号");
+        			return;
+				}
+				if (!$("#startDate").val()||!$("#endDate").val()) {
+					$("#batch_error_tip").show();
+        			$("#batch_error_tip_text").text("请输入缴费开始和结束时间");
+        			return;
+				}
+				if ($("#startDate").val()>$("#endDate").val()) {
+					$("#batch_error_tip").show();
+        			$("#batch_error_tip_text").text("缴费开始时间不能大于结束时间");
+        			return;
+				}
+				var postdata = {
+					departmentIds : $("#departmentIds").val()?$("#departmentIds").val().join(","):"",
+					studentIds_start : $("#studentIds_start").val(),
+					studentIds_end : $("#studentIds_end").val(),
+					feeItemId : $("#feeItemId").val(),
+					startDate : $("#startDate").val(),
+					endDate : $("#endDate").val()
+				};
+				$.post("payment/batch", postdata, function(result){
+					if (result.success) {
+						$("#batch_warning_tip").show();
+	        			$("#batch_warning_tip_text").text(result.info.msg);
+					} else {
+						$("#batch_error_tip").show();
+	        			$("#batch_error_tip_text").text(result.info.msg);
+					}
+				},"json");
+			});
+			$("#batch_confirm_btn").on("click",function(){
+				$("div.alert").hide();
+				$.post("payment/batch", {confirm:true}, function(result){
+					if (result.success) {
+						$("#batch_success_tip").show();
+		        		$("#batch_success_tip_text").html(result.info.msg);
+		        		setTimeout('$("#batch-modal-form").hide();$("#grid-table").trigger("reloadGrid");',5000);
+					} else {
+						$("#batch_error_tip").show();
+	        			$("#batch_error_tip_text").text(result.info.msg);
+					}
+				},"json");
+			});
+			function style_edit_form(form) {
+				//update buttons classes
+				form.find('input[name=startDate]').datepicker({format:'yyyy-mm-dd',language: 'zh-CN', autoclose:true, todayHighlight: true});
+				form.find('input[name=endDate]').datepicker({format:'yyyy-mm-dd',language: 'zh-CN', autoclose:true, todayHighlight: true});
+				var buttons = form.next().find('.EditButton .fm-button');
+				buttons.addClass('btn btn-sm').find('[class*="-icon"]').hide();//ui-icon, s-icon
+				buttons.eq(0).addClass('btn-primary').prepend('<i class="ace-icon fa fa-check"></i>');
+				buttons.eq(1).prepend('<i class="ace-icon fa fa-times"></i>');
+				
+				buttons = form.next().find('.navButton a');
+				buttons.find('.ui-icon').hide();
+				buttons.eq(0).append('<i class="ace-icon fa fa-chevron-left"></i>');
+				buttons.eq(1).append('<i class="ace-icon fa fa-chevron-right"></i>');		
+			}
+			function style_delete_form(form) {
+				var buttons = form.next().find('.EditButton .fm-button');
+				buttons.addClass('btn btn-sm btn-white btn-round').find('[class*="-icon"]').hide();//ui-icon, s-icon
+				buttons.eq(0).addClass('btn-danger').prepend('<i class="ace-icon fa fa-trash-o"></i>');
+				buttons.eq(1).addClass('btn-default').prepend('<i class="ace-icon fa fa-times"></i>')
+			}
+			function style_search_filters(form) {
+				form.find('.delete-rule').val('X');
+				form.find('.add-rule').addClass('btn btn-xs btn-primary');
+				form.find('.add-group').addClass('btn btn-xs btn-success');
+				form.find('.delete-group').addClass('btn btn-xs btn-danger');
+			}
+			function style_search_form(form) {
+				var dialog = form.closest('.ui-jqdialog');
+				var buttons = dialog.find('.EditTable');
+				buttons.find('.EditButton a[id*="_reset"]').addClass('btn btn-sm btn-info').find('.ui-icon').attr('class', 'ace-icon fa fa-retweet');
+				buttons.find('.EditButton a[id*="_query"]').addClass('btn btn-sm btn-inverse').find('.ui-icon').attr('class', 'ace-icon fa fa-comment-o');
+				buttons.find('.EditButton a[id*="_search"]').addClass('btn btn-sm btn-purple').find('.ui-icon').attr('class', 'ace-icon fa fa-search');
+			}
+			
+			//replace icons with FontAwesome icons like above
+			function updatePagerIcons(table) {
+				var replacement = 
+				{
+					'ui-icon-seek-first' : 'ace-icon fa fa-angle-double-left bigger-140',
+					'ui-icon-seek-prev' : 'ace-icon fa fa-angle-left bigger-140',
+					'ui-icon-seek-next' : 'ace-icon fa fa-angle-right bigger-140',
+					'ui-icon-seek-end' : 'ace-icon fa fa-angle-double-right bigger-140'
+				};
+				$('.ui-pg-table:not(.navtable) > tbody > tr > .ui-pg-button > .ui-icon').each(function(){
+					var icon = $(this);
+					var $class = $.trim(icon.attr('class').replace('ui-icon', ''));
+					
+					if($class in replacement) icon.attr('class', 'ui-icon '+replacement[$class]);
+				});
+			}
+		
+			function enableTooltips(table) {
+				$('.navtable .ui-pg-button').tooltip({container:'body'});
+				$(table).find('.ui-pg-div').tooltip({container:'body'});
+				$('[data-rel=tooltip]').tooltip();
+			}
+			
+			$(document).one('ajaxloadstart.page', function(e) {
+				$(grid_selector).jqGrid('GridUnload');
+				$('.ui-jqdialog').remove();
+			});
+		});
+	});
+});
+
+</script>

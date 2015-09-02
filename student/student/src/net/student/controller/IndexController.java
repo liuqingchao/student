@@ -1,7 +1,6 @@
 package net.student.controller;
 
-import net.student.response.JsonResult;
-import net.student.service.IIndexService;
+import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -12,6 +11,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
 import com.alibaba.fastjson.JSONObject;
+
+import net.student.response.JsonResult;
+import net.student.service.IIndexService;
 /**
  * 页面跳转控制类
  * @author liuqingchao
@@ -38,12 +40,49 @@ public class IndexController {
         }
         return mv;
     }
-    
+    /**
+     * 统计概述
+     * @param request
+     * @return
+     */
     @RequestMapping(value = "/stat", method = RequestMethod.GET)
-    public JsonResult stat(String page) {
+    public JsonResult stat(HttpServletRequest request) {
         JsonResult result = new JsonResult();
         try {
-            JSONObject json = indexService.getStatInfo();
+            JSONObject json = indexService.getStatInfo(request.getLocale());
+            result.setSuccess(true);
+            result.setInfo(json);
+        } catch (Exception e) {
+            logger.error(e);
+            result.setSuccess(false);
+        }
+        return result;
+    }
+    
+    @RequestMapping(value = "/stat/student", method = RequestMethod.GET)
+    public JsonResult statStudent(String type, HttpServletRequest request) {
+        JsonResult result = new JsonResult();
+        try {
+            JSONObject json = indexService.getStudentInfo(type);
+            result.setSuccess(true);
+            result.setInfo(json);
+        } catch (Exception e) {
+            logger.error(e);
+            result.setSuccess(false);
+        }
+        return result;
+    }
+    /**
+     * 收费项目统计
+     * @param type
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "/stat/feeitem", method = RequestMethod.GET)
+    public JsonResult statFeeItem(HttpServletRequest request) {
+        JsonResult result = new JsonResult();
+        try {
+            JSONObject json = indexService.getFeeItemInfo(request.getLocale());
             result.setSuccess(true);
             result.setInfo(json);
         } catch (Exception e) {

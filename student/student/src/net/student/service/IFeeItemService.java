@@ -1,10 +1,16 @@
 package net.student.service;
 
-import com.alibaba.fastjson.JSONObject;
+import java.io.InputStream;
+import java.util.List;
+
+import javax.servlet.http.HttpSession;
+
+import com.alibaba.fastjson.JSON;
 
 import net.student.model.FeeItem;
 import net.student.model.User;
 import net.student.request.JqGridQuerier;
+import net.student.response.JsonResult;
 import net.student.response.QueryResult;
 
 /**
@@ -43,5 +49,17 @@ public interface IFeeItemService {
      * @param user
      * @return
      */
-    public JSONObject selectFeeItems(User user) throws Exception;
+    public JSON selectFeeItems(User user) throws Exception;
+    /**
+     * 导入收费项目
+     * @param is
+     * @throws Exception
+     */
+    public JsonResult importFeeItems(InputStream is, HttpSession session) throws Exception;
+    /**
+     * 确认导入收费项目
+     * @param is
+     * @throws Exception
+     */
+    public JsonResult importFeeItems(List<FeeItem> feeItems) throws Exception;
 }
