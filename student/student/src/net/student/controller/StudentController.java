@@ -252,6 +252,7 @@ public class StudentController {
             String paymentId = request.getParameter("paymentId");
             try {
 				Payment payment = paymentService.getPaymentById(Integer.valueOf(paymentId));
+				logger.info("****start to pay:" + payment);
 				ICBCServiceStub stub = new ICBCServiceStub();
 				Verify verify = new Verify();
 				verify.setClienID(Constants.WEBSERVICE_CLIENTID);
@@ -269,22 +270,26 @@ public class StudentController {
 	                Options options = stub._getServiceClient().getOptions();
 	                options.setProperty(HTTPConstants.HTTP_HEADERS, list);  
 	                stub._getServiceClient().setOptions(options);
+	                logger.info("****payment["+paymentId+"] orderid:" + payment.getOrderId());
 	                if (StringUtils.isNotBlank(payment.getOrderId())) {
 	                	GetPayInfo getPayInfo = new GetPayInfo();
 	                    getPayInfo.setOrderID(payment.getOrderId());
 	                    GetPayInfoResponse getPayInfoResponse = stub.getPayInfo(getPayInfo);
 	                    if (getPayInfoResponse.getGetPayInfoResult()) {
+	                        logger.info("****payment["+paymentId+"] orderid[" + payment.getOrderId()+"] already paid,start restore");
 	                    	paymentService.savePaidLog(payment.getOrderId(), request.getLocale());
 	                    	response.setContentType("text/html;charset=UTF-8");
 	    	                response.getWriter().write("<script  type=\"text/javascript\">alert(\"账单已支付，请关闭本页面并刷新首页\");</script>");
-	                    	return null;
+	    	                logger.info("****payment["+paymentId+"] orderid[" + payment.getOrderId()+"] already paid,restore success");
+	    	                return null;
 	                    }
+	                    logger.info("****payment["+paymentId+"] orderid[" + payment.getOrderId()+"] not paid,continue to pay");
 	                }
 	                PostOrder postOrder = new PostOrder();
 	                postOrder.setOrderID(""+payment.getPaymentId() + (new Date()).getTime());
 	                postOrder.setOrderUser(payment.getStudent().getStudentId());
 	                postOrder.setItemID(payment.getFeeItem().getItemId());
-	                postOrder.setItemName(payment.getStudent().getName() + ":" + payment.getFeeItem().getItemName());
+	                postOrder.setItemName(payment.getStudent().getName() + "：" + payment.getFeeItem().getItemName());
 	                postOrder.setAmount(String.valueOf((payment.getPrice() - payment.getPaidFee())/1000.00));
 	                PostOrderResponse res2 = stub.postOrder(postOrder);
 	                String returnHtml = res2.getPostOrderResult();
@@ -292,12 +297,14 @@ public class StudentController {
 	                	payment.setOrderId(postOrder.getOrderID());
 	                	payment.setLastCheckDate(new Date());
 	                	paymentService.updatePaymentSimple(payment);
+	                	logger.info("****payment["+paymentId+"] create new orderid[" + payment.getOrderId()+"]");
 	                }
 	                response.setContentType("text/html;charset=UTF-8");
 	                response.getWriter().write(returnHtml);
 	            }
 			} catch (Exception e) {
 				e.printStackTrace();
+				logger.error("**********payment["+paymentId+"] execute faild", e);
 			}
         	return null;
         }

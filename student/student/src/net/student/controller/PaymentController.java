@@ -253,16 +253,19 @@ public class PaymentController {
             JSONObject json = new JSONObject();
             json.put("msg", messageSource.getMessage("payment.message.notExist", null, request.getLocale()));
             result.setInfo(json);
+            logger.error("&&&&&&&&&&&&orderid["+orderId+"] paid falid, because no session");
             return result;
     	}
         try {
         	paymentService.savePaidLog(orderId, request.getLocale());
             result.setSuccess(true);
+            logger.info("&&&&&&&&&&&&orderid["+orderId+"] paid succeed");
         } catch (CustomerException e) {
             result.setSuccess(false);
             JSONObject json = new JSONObject();
             json.put("msg", messageSource.getMessage(e.getMessage(), null, request.getLocale()));
             result.setInfo(json);
+            logger.error("&&&&&&&&&&&&orderid["+orderId+"] paid falid", e);
         } catch (Exception e) {
             e.printStackTrace();
             logger.error(e);
@@ -270,6 +273,7 @@ public class PaymentController {
             JSONObject json = new JSONObject();
             json.put("msg", ExceptionUtils.getRootCauseMessage(e));
             result.setInfo(json);
+            logger.error("&&&&&&&&&&&&orderid["+orderId+"] paid falid", e);
         }
         return result;
     }
