@@ -59,6 +59,9 @@ public class PaymentCheckJob {
             List<Payment> payments =
                 paymentDao.query(paymentDao.queryBuilder().setCountOf(false).where().isNotNull("orderid").and()
                     .raw("strftime('%s',datetime('now','localtime'))-strftime('%s',lastcheckdate)<1800").prepare());
+            if(payments == null || payments.isEmpty()) {
+                return;
+            }
             ICBCServiceStub stub = new ICBCServiceStub();
             Verify verify = new Verify();
             verify.setClienID(Constants.WEBSERVICE_CLIENTID);
