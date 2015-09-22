@@ -261,8 +261,7 @@ $('.page-content-area').ace_ajax('loadScripts', scripts, function() {
 					titles.push("部门:" + stat.departmentName);
 					titles.push("收费项目:" + stat.feeItemName);
 					titles.push("项目备注:" + stat.feeItemDesc);
-					titles.push("应收金额:" + (stat.price/1000).toFixed(2));
-					titles.push("已缴金额:" + (stat.paidfee/1000).toFixed(2));
+					titles.push("金额:" + ((stat.price-stat.paidfee)/1000).toFixed(2));
 					titles.push("缴费时间:" + stat.payDate);
 					$("#today_last_order").attr("data-content",titles.join("<br/>"));
 					$('[data-rel=popover]').popover({html:true});
