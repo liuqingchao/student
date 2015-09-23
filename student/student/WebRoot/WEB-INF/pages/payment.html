@@ -231,7 +231,7 @@ $('.page-content-area').ace_ajax('loadScripts', scripts, function() {
 				url: "payment",
 				datatype: "json",
 				mtype: "GET",
-				height: 300,
+				height: 330,
 				colNames:['','学号','姓名', '部门','收费项目','收费项目','应收金额(元)','已缴金额(元)','缴费开始时间', '缴费结束时间','创建时间','缴费时间'],
 				colModel:[
 					{name:'paymentId', hidden:true, editable: true, search:false},
@@ -663,7 +663,7 @@ $('.page-content-area').ace_ajax('loadScripts', scripts, function() {
 			function enableTooltips(table) {
 				$('.navtable .ui-pg-button').tooltip({container:'body'});
 				$(table).find('.ui-pg-div').tooltip({container:'body'});
-				$('[data-rel=tooltip]').tooltip();
+				$('[data-rel=tooltip]').tooltip({container: 'body'});
 			}
 			
 			$(document).one('ajaxloadstart.page', function(e) {

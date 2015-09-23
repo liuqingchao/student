@@ -54,7 +54,7 @@ $('.page-content-area').ace_ajax('loadScripts', scripts, function() {
 				url: "paidlog",
 				datatype: "json",
 				mtype: "GET",
-				height: 300,
+				height: 330,
 				colNames:['学号','姓名', '部门','收费项目','原账单应缴金额(元)','原账单已缴金额(元)','账单金额(元)','缴费时间','创建时间','支付订单号'],
 				colModel:[
 					{name:'studentId',index:'studentId', width:70, editable:false,searchoptions:{sopt:['eq','ne','lt','le','gt','ge']}},
@@ -176,7 +176,7 @@ $('.page-content-area').ace_ajax('loadScripts', scripts, function() {
 			function enableTooltips(table) {
 				$('.navtable .ui-pg-button').tooltip({container:'body'});
 				$(table).find('.ui-pg-div').tooltip({container:'body'});
-				$('[data-rel=tooltip]').tooltip();
+				$('[data-rel=tooltip]').tooltip({container: 'body'});
 			}
 			
 			$(document).one('ajaxloadstart.page', function(e) {

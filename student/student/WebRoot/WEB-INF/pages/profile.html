@@ -329,7 +329,7 @@ jQuery(function($){
 								item.payDate+'</div></div></div></div>');
 				}
 				$("#histories").append(his.join(''));
-				$('[data-rel=tooltip]').tooltip();
+				$('[data-rel=tooltip]').tooltip({container: 'body'});
 			}
 		}
 	},'json');

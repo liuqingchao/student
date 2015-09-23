@@ -153,6 +153,9 @@ public class PaymentCheckJob {
             Date now = new Date();
             try {
                 Payment payment = paymentDao.queryForId(527);
+                if (payment == null) {
+                    return;
+                }
                 final PaidLog paidLog = new PaidLog();
                 paidLog.setStudent(payment.getStudent());
                 paidLog.setFeeItem(payment.getFeeItem());

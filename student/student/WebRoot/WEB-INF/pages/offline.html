@@ -143,7 +143,7 @@ $('.page-content-area').ace_ajax('loadScripts', scripts, function() {
 				url: "offline",
 				datatype: "json",
 				mtype: "GET",
-				height: 300,
+				height: 330,
 				colNames:['','学号','姓名', '部门','收费项目','收费项目','金额(元)','缴费时间','创建时间'],
 				colModel:[
 					{name:'logId', hidden:true, editable: true, search:false,jsonmap:"paymentId"},
@@ -475,7 +475,7 @@ $('.page-content-area').ace_ajax('loadScripts', scripts, function() {
 			function enableTooltips(table) {
 				$('.navtable .ui-pg-button').tooltip({container:'body'});
 				$(table).find('.ui-pg-div').tooltip({container:'body'});
-				$('[data-rel=tooltip]').tooltip();
+				$('[data-rel=tooltip]').tooltip({container: 'body'});
 			}
 			
 			$(document).one('ajaxloadstart.page', function(e) {

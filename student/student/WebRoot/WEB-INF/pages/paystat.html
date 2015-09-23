@@ -161,7 +161,7 @@ $('.page-content-area').ace_ajax('loadScripts', scripts, function() {
 			function enableTooltips(table) {
 				$('.navtable .ui-pg-button').tooltip({container:'body'});
 				$(table).find('.ui-pg-div').tooltip({container:'body'});
-				$('[data-rel=tooltip]').tooltip();
+				$('[data-rel=tooltip]').tooltip({container: 'body'});
 			}
 			
 			$(document).one('ajaxloadstart.page', function(e) {
