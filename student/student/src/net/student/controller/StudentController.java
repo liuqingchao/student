@@ -252,6 +252,12 @@ public class StudentController {
             String paymentId = request.getParameter("paymentId");
             try {
 				Payment payment = paymentService.getPaymentById(Integer.valueOf(paymentId));
+				if (payment == null) {
+				    response.setContentType("text/html;charset=UTF-8");
+                    response.getWriter().write("<script  type=\"text/javascript\">alert(\"账单已支付，请关闭本页面并刷新首页\");</script>");
+                    logger.info("****payment["+paymentId+"] not exist,return refresh message");
+                    return null;
+				}
 				logger.info("****start to pay:" + payment);
 				ICBCServiceStub stub = new ICBCServiceStub();
 				Verify verify = new Verify();
