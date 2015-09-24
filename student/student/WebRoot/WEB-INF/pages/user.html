@@ -69,7 +69,7 @@ $('.page-content-area').ace_ajax('loadScripts', scripts, function() {
 					{name:'feeitems',index:'feeitems',search:false,hidden:true, editable:true,edittype:'select',editoptions: {multiple:"","class":"chosen-select",value:selectFeeItem},editrules:{edithidden: true}},
 					{name:'createdDate',index:'createdDate',width:90, search:false},
 					{name:'userDesc',index:'userDesc', width:150, sortable:false,editable: true,edittype:"textarea", editoptions:{style:"width:180px",rows:"2",cols:"10",maxlength:"512"},search:false},
-					{name:'userId',width:90, search:false,edit:false,formatter:function(val,opt,row){var departmentNames=[],feeItemNames=[];var departmentIds = row.departments.split(",");for (var i=0;i<departmentIds.length;i++){departmentNames[i]=selectDepartment[departmentIds[i]];}var feeItemIds = row.feeitems.split(",");for (var i=0;i<feeItemIds.length;i++){feeItemNames[i]=selectFeeItem[feeItemIds[i]];}return "<a class='ace-icon fa fa-info-circle blue' data-rel='tooltip' data-placement='bottom' href='#' title='部门:"+departmentNames+"\n收费项目:"+feeItemNames+"'></a>";}}
+					{name:'userId',width:90, search:false,edit:false,formatter:function(val,opt,row){var departmentNames=[],feeItemNames=[];var departmentIds = row.departments.split(",");for (var i=0;i<departmentIds.length;i++){departmentNames[i]=selectDepartment[departmentIds[i]];}var feeItemIds = row.feeitems.split(",");for (var i=0;i<feeItemIds.length;i++){feeItemNames[i]=selectFeeItem[feeItemIds[i]];}return "<a class='ace-icon fa fa-info-circle blue' data-html='true' data-rel='tooltip' data-placement='bottom' href='#' title='<p style=\"text-align:left;\">部门:"+(!row.departments?"所有":departmentNames)+"<br/>收费项目:"+(!row.feeitems?"所有":feeItemNames)+"</p>'></a>";}}
 				], 
 				rownumbers:true,
 				viewrecords : true,
@@ -266,7 +266,7 @@ $('.page-content-area').ace_ajax('loadScripts', scripts, function() {
 			function enableTooltips(table) {
 				$('.navtable .ui-pg-button').tooltip({container:'body'});
 				$(table).find('.ui-pg-div').tooltip({container:'body'});
-				$('[data-rel=tooltip]').tooltip();
+				$('[data-rel=tooltip]').tooltip({container:'body'});
 			}
 		
 			//var selr = jQuery(grid_selector).jqGrid('getGridParam','selrow');

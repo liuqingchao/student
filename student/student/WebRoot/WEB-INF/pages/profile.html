@@ -290,14 +290,14 @@ jQuery(function($){
 				for (var i = 0; i < paymentInfo.to_do.length;i++) {
 					var item = paymentInfo.to_do[i];
 					if (item.active) {
-						btns+='<div class="btn-group col-xs-4"><button class="btn btn-sm btn-danger" onclick="to_order('+item.paymentId+')">'+item.itemName+'</button>'+
+						btns+='<div class="btn-group col-xs-6"><button class="btn btn-sm btn-danger" onclick="to_order('+item.paymentId+')">'+item.itemName+'</button>'+
 						'<button data-toggle="dropdown" class="btn btn-sm btn-danger dropdown-toggle">'+
 						'<i class="ace-icon fa fa-angle-down icon-only"></i></button><ul class="dropdown-menu dropdown-yellow">'+
 						'<li><a href="#">金额:'+(item.amount/1000).toFixed(2)+'</a></li><li><a href="#">说明:'+item.desc+'</a></li>'+
 						'<li><a href="#">开始时间:'+item.startDate+'</a></li><li><a href="#">截止时间:'+item.endDate+'</a></li>'+
 						'</ul></div>';
 					} else {
-						oldbtns+='<div class="btn-group col-xs-2"><button class="btn btn-sm btn-grey" disabled="disabled">'+item.itemName+'</button>'+
+						oldbtns+='<div class="btn-group col-xs-6"><button class="btn btn-sm btn-grey" disabled="disabled">'+item.itemName+'</button>'+
 						'<button data-toggle="dropdown" class="btn btn-sm btn-grey dropdown-toggle">'+
 						'<i class="ace-icon fa fa-angle-down icon-only"></i></button><ul class="dropdown-menu dropdown-yellow">'+
 						'<li><a href="#">金额:'+(item.amount/1000).toFixed(2)+'</a></li><li><a href="#">说明:'+item.desc+'</a></li>'+
