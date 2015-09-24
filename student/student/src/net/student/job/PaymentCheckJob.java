@@ -2,7 +2,6 @@ package net.student.job;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -50,7 +49,7 @@ public class PaymentCheckJob {
     @Autowired
     private Dao<PayStat, Integer> payStatDao;
     
-    private int time = 0;
+//    private int time = 0;
 
     @Scheduled(fixedRate = 1000 * 60 * 10)
     // 每10分钟执行一次
@@ -148,53 +147,7 @@ public class PaymentCheckJob {
     }
     @Scheduled(fixedRate = 24*60*60*1000)
     public void repairData(){
-        if (time == 0) {
-            time++;
-            Date now = new Date();
-            try {
-                Payment payment = paymentDao.queryForId(527);
-                if (payment == null) {
-                    return;
-                }
-                final PaidLog paidLog = new PaidLog();
-                paidLog.setStudent(payment.getStudent());
-                paidLog.setFeeItem(payment.getFeeItem());
-                paidLog.setPrice(payment.getPrice());
-                paidLog.setPaidFee(payment.getPaidFee());
-                paidLog.setPayDate(payment.getLastCheckDate());
-                paidLog.setCreatedDate(now);
-                paidLog.setSerialNo("5271442489468557");
-                final Payment fPayment = payment;
-                String statDay =
-                    DateFormatUtils.format(now, "yyyy-MM-dd", TimeZone.getTimeZone("Asia/Shanghai"));
-                PayStat payStat =
-                    payStatDao.queryForFirst(payStatDao.queryBuilder().where().eq("statday", statDay).and()
-                        .eq("itemid", payment.getFeeItem().getItemId()).prepare());
-                if (payStat == null) {
-                    payStat = new PayStat();
-                    payStat.setStatDay(statDay);
-                    payStat.setFeeItemId(payment.getFeeItem().getItemId());
-                    payStat.setCount(0);
-                    payStat.setAmount(0L);
-                }
-                payStat.setCount(payStat.getCount() + 1);
-                payStat.setAmount(payStat.getAmount() + payment.getPrice() - payment.getPaidFee());
-                payStat.setLastOrderId("5271442489468557");
-                payStat.setLastPayDate(now);
-                final PayStat fPayStat = payStat;
-                TransactionManager.callInTransaction(paymentDao.getConnectionSource(), new Callable<Void>() {
-                    public Void call() throws Exception {
-                        paidLogDao.create(paidLog);
-                        paymentDao.delete(fPayment);
-                        payStatDao.createOrUpdate(fPayStat);
-                        return null;
-                    }
-                });
-            } catch (SQLException e) {
-                e.printStackTrace();
-                logger.error("repair database failed:", e);
-            }
-        }
+        
     }
 
 //    public static void main(String[] args) {

@@ -4,6 +4,18 @@ import java.sql.SQLException;
 import java.util.Date;
 import java.util.Properties;
 
+import net.student.model.Department;
+import net.student.model.FeeItem;
+import net.student.model.OffLinePaidLog;
+import net.student.model.PaidLog;
+import net.student.model.PayStat;
+import net.student.model.Payment;
+import net.student.model.Student;
+import net.student.model.User;
+import net.student.model.UserDepartment;
+import net.student.model.UserFeeItem;
+import net.student.model.UserLog;
+
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -20,19 +32,6 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.misc.TransactionManager;
 import com.j256.ormlite.spring.TableCreator;
-import com.j256.ormlite.table.TableUtils;
-
-import net.student.model.Department;
-import net.student.model.FeeItem;
-import net.student.model.OffLinePaidLog;
-import net.student.model.PaidLog;
-import net.student.model.PayStat;
-import net.student.model.Payment;
-import net.student.model.Student;
-import net.student.model.User;
-import net.student.model.UserDepartment;
-import net.student.model.UserFeeItem;
-import net.student.model.UserLog;
 
 @Configuration
 @ComponentScan("net.student")
@@ -109,16 +108,16 @@ public class ApplicationContextConfig {
     public TableCreator tableCreator() throws SQLException {
 //    	TableUtils.dropTable(dataSourceConfig.dataSource(), Payment.class, true);
 //    	TableUtils.dropTable(dataSourceConfig.dataSource(), Student.class, true);
-        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), User.class);
-        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), Department.class);
-        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), Student.class);
-        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), FeeItem.class);
-        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), UserDepartment.class);
-        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), UserFeeItem.class);
-        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), Payment.class);
-        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), PaidLog.class);
-        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), PayStat.class);
-        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), OffLinePaidLog.class);
+//        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), User.class);
+//        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), Department.class);
+//        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), Student.class);
+//        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), FeeItem.class);
+//        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), UserDepartment.class);
+//        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), UserFeeItem.class);
+//        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), Payment.class);
+//        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), PaidLog.class);
+//        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), PayStat.class);
+//        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), OffLinePaidLog.class);
         if (userDao().countOf() == 0) {
             User user = new User();
             user.setUserName("管理员");
