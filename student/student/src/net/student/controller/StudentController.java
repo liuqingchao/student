@@ -9,6 +9,19 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import net.student.constants.Constants;
+import net.student.constants.CustomerException;
+import net.student.model.Payment;
+import net.student.model.PaymentOrder;
+import net.student.model.Student;
+import net.student.model.User;
+import net.student.request.JqGridQuerier;
+import net.student.response.JsonResult;
+import net.student.response.QueryResult;
+import net.student.service.IPaymentService;
+import net.student.service.IStudentService;
+import net.student.service.impl.IndexService;
+
 import org.apache.axis2.client.Options;
 import org.apache.axis2.context.MessageContext;
 import org.apache.axis2.transport.http.CommonsTransportHeaders;
@@ -34,8 +47,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.util.WebUtils;
 
-import com.alibaba.fastjson.JSONObject;
-
 import axis2.service.server.ICBCServiceStub;
 import cn.edu.huat.pay.GetPayInfo;
 import cn.edu.huat.pay.GetPayInfoResponse;
@@ -43,17 +54,8 @@ import cn.edu.huat.pay.PostOrder;
 import cn.edu.huat.pay.PostOrderResponse;
 import cn.edu.huat.pay.Verify;
 import cn.edu.huat.pay.VerifyResponse;
-import net.student.constants.Constants;
-import net.student.constants.CustomerException;
-import net.student.model.Payment;
-import net.student.model.Student;
-import net.student.model.User;
-import net.student.request.JqGridQuerier;
-import net.student.response.JsonResult;
-import net.student.response.QueryResult;
-import net.student.service.IPaymentService;
-import net.student.service.IStudentService;
-import net.student.service.impl.IndexService;
+
+import com.alibaba.fastjson.JSONObject;
 /**
  * 学生Controller类
  * @author liuqingchao
@@ -276,20 +278,27 @@ public class StudentController {
 	                Options options = stub._getServiceClient().getOptions();
 	                options.setProperty(HTTPConstants.HTTP_HEADERS, list);  
 	                stub._getServiceClient().setOptions(options);
-	                logger.info("****payment["+paymentId+"] orderid:" + payment.getOrderId());
+//	                logger.info("****payment["+paymentId+"] orderid:" + payment.getOrderId());
 	                if (StringUtils.isNotBlank(payment.getOrderId())) {
+	                    PaymentOrder paymentOrder = paymentService.getLastPaymentOrder(Integer.valueOf(paymentId));
+	                    String orderId = null;
+	                    if (paymentOrder == null) {
+	                        orderId = payment.getOrderId();
+                        } else {
+                            orderId = paymentOrder.getOrderId();
+                        }
 	                	GetPayInfo getPayInfo = new GetPayInfo();
-	                    getPayInfo.setOrderID(payment.getOrderId());
+	                	getPayInfo.setOrderID(orderId);
 	                    GetPayInfoResponse getPayInfoResponse = stub.getPayInfo(getPayInfo);
 	                    if (getPayInfoResponse.getGetPayInfoResult()) {
-	                        logger.info("****payment["+paymentId+"] orderid[" + payment.getOrderId()+"] already paid,start restore");
-	                    	paymentService.savePaidLog(payment.getOrderId(), request.getLocale());
+	                        logger.info("****payment["+paymentId+"] orderid[" + orderId+"] already paid,start restore");
+	                    	paymentService.savePaidLog(orderId, request.getLocale());
 	                    	response.setContentType("text/html;charset=UTF-8");
 	    	                response.getWriter().write("<script  type=\"text/javascript\">alert(\"账单已支付，请关闭本页面并刷新首页\");</script>");
-	    	                logger.info("****payment["+paymentId+"] orderid[" + payment.getOrderId()+"] already paid,restore success");
+	    	                logger.info("****payment["+paymentId+"] orderid[" + orderId+"] already paid,restore success");
 	    	                return null;
 	                    }
-	                    logger.info("****payment["+paymentId+"] orderid[" + payment.getOrderId()+"] not paid,continue to pay");
+	                    logger.info("****payment["+paymentId+"] orderid[" + orderId+"] not paid,continue to pay");
 	                }
 	                PostOrder postOrder = new PostOrder();
 	                postOrder.setOrderID(""+payment.getPaymentId() + (new Date()).getTime());
@@ -300,10 +309,17 @@ public class StudentController {
 	                PostOrderResponse res2 = stub.postOrder(postOrder);
 	                String returnHtml = res2.getPostOrderResult();
 	                if (StringUtils.isNotBlank(returnHtml) && returnHtml.startsWith("<")) {
-	                	payment.setOrderId(postOrder.getOrderID());
-	                	payment.setLastCheckDate(new Date());
-	                	paymentService.updatePaymentSimple(payment);
-	                	logger.info("****payment["+paymentId+"] create new orderid[" + payment.getOrderId()+"]");
+	                    if (StringUtils.isBlank(payment.getOrderId())) {
+	                        payment.setOrderId(postOrder.getOrderID());
+	                    } else {
+	                        PaymentOrder paymentOrder = new PaymentOrder();
+	                        paymentOrder.setPaymentId(Integer.valueOf(paymentId));
+	                        paymentOrder.setOrderId(postOrder.getOrderID());
+	                        paymentService.savePaymentOrder(paymentOrder);
+	                    }
+	                    payment.setLastCheckDate(new Date());
+                        paymentService.updatePaymentSimple(payment);
+	                	logger.info("****payment["+paymentId+"] create new orderid[" + postOrder.getOrderID()+"]");
 	                }
 	                response.setContentType("text/html;charset=UTF-8");
 	                response.getWriter().write(returnHtml);

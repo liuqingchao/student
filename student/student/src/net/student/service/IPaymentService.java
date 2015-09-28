@@ -7,14 +7,15 @@ import java.util.Map;
 
 import javax.servlet.http.HttpSession;
 
-import com.alibaba.fastjson.JSONObject;
-
 import net.student.model.Payment;
+import net.student.model.PaymentOrder;
 import net.student.model.User;
 import net.student.request.JqGridQuerier;
 import net.student.response.JsonResult;
 import net.student.response.PaymentView;
 import net.student.response.QueryResult;
+
+import com.alibaba.fastjson.JSONObject;
 
 /**
  * 账单Service接口类
@@ -98,4 +99,17 @@ public interface IPaymentService {
      * @throws Exception
      */
     public void savePaidLog(String orderId, Locale locale) throws Exception;
+    /**
+     * 增加订单号
+     * @param paymentOrder
+     * @throws Exception
+     */
+    public void savePaymentOrder(PaymentOrder paymentOrder) throws Exception;
+    /**
+     * 获得最新的订单
+     * @param paymentId
+     * @return
+     * @throws Exception
+     */
+    public PaymentOrder getLastPaymentOrder(Integer paymentId) throws Exception;
 }

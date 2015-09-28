@@ -10,6 +10,7 @@ import net.student.model.OffLinePaidLog;
 import net.student.model.PaidLog;
 import net.student.model.PayStat;
 import net.student.model.Payment;
+import net.student.model.PaymentOrder;
 import net.student.model.Student;
 import net.student.model.User;
 import net.student.model.UserDepartment;
@@ -32,6 +33,7 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.misc.TransactionManager;
 import com.j256.ormlite.spring.TableCreator;
+import com.j256.ormlite.table.TableUtils;
 
 @Configuration
 @ComponentScan("net.student")
@@ -105,6 +107,11 @@ public class ApplicationContextConfig {
     }
     
     @Bean
+    public Dao<PaymentOrder, Integer> paymentOrderDao() throws SQLException {
+        return DaoManager.createDao(dataSourceConfig.dataSource(), PaymentOrder.class);
+    }
+    
+    @Bean
     public TableCreator tableCreator() throws SQLException {
 //    	TableUtils.dropTable(dataSourceConfig.dataSource(), Payment.class, true);
 //    	TableUtils.dropTable(dataSourceConfig.dataSource(), Student.class, true);
@@ -118,6 +125,7 @@ public class ApplicationContextConfig {
 //        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), PaidLog.class);
 //        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), PayStat.class);
 //        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), OffLinePaidLog.class);
+        TableUtils.createTableIfNotExists(dataSourceConfig.dataSource(), PaymentOrder.class);
         if (userDao().countOf() == 0) {
             User user = new User();
             user.setUserName("管理员");

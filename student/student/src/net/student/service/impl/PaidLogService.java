@@ -65,8 +65,8 @@ public class PaidLogService implements IPaidLogService {
         				rules[i] = "s.name" + this.returnQueryParamValue(rule);;
         			} else if (rule.getField().equals("departmentname")) {
         				rules[i] = "d.departmentid" + this.returnQueryParamValue(rule);;
-        			} else if (rule.getField().equals("itemname")) {
-        				rules[i] = "f.itemname" + this.returnQueryParamValue(rule);;
+        			} else if (rule.getField().equals("itemid")) {
+        				rules[i] = "f.itemid" + this.returnQueryParamValue(rule);;
         			}
         			i++;
         		}

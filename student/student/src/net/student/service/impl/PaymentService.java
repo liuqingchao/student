@@ -13,9 +13,27 @@ import java.util.concurrent.Callable;
 
 import javax.servlet.http.HttpSession;
 
+import net.student.constants.Constants;
+import net.student.constants.CustomerException;
+import net.student.model.FeeItem;
+import net.student.model.PaidLog;
+import net.student.model.PayStat;
+import net.student.model.Payment;
+import net.student.model.PaymentOrder;
+import net.student.model.Student;
+import net.student.model.User;
+import net.student.request.JqGridFilter;
+import net.student.request.JqGridQuerier;
+import net.student.request.JqGridRule;
+import net.student.response.JsonResult;
+import net.student.response.PaymentView;
+import net.student.response.QueryResult;
+import net.student.service.IPaymentService;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.commons.lang.time.DateUtils;
+import org.apache.log4j.Logger;
 import org.apache.poi.hssf.usermodel.HSSFCell;
 import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
@@ -32,22 +50,6 @@ import com.j256.ormlite.stmt.DeleteBuilder;
 import com.j256.ormlite.stmt.QueryBuilder;
 import com.j256.ormlite.stmt.Where;
 
-import net.student.constants.Constants;
-import net.student.constants.CustomerException;
-import net.student.model.FeeItem;
-import net.student.model.PaidLog;
-import net.student.model.PayStat;
-import net.student.model.Payment;
-import net.student.model.Student;
-import net.student.model.User;
-import net.student.request.JqGridFilter;
-import net.student.request.JqGridQuerier;
-import net.student.request.JqGridRule;
-import net.student.response.JsonResult;
-import net.student.response.PaymentView;
-import net.student.response.QueryResult;
-import net.student.service.IPaymentService;
-
 /**
  * 账单Service实现类
  * 
@@ -56,6 +58,7 @@ import net.student.service.IPaymentService;
  */
 @Service
 public class PaymentService implements IPaymentService {
+    static Logger logger = Logger.getLogger(PaymentService.class);
 	@Autowired
 	private Dao<Payment, Integer> paymentDao;
 	@Autowired
@@ -66,6 +69,9 @@ public class PaymentService implements IPaymentService {
 	private Dao<PaidLog, Integer> paidLogDao;
 	@Autowired
 	private Dao<PayStat, Integer> payStatDao;
+	@Autowired
+    private Dao<PaymentOrder, Integer> paymentOrderDao;
+
 
 	@Override
 	public QueryResult<PaymentView> queryPayments(JqGridQuerier<Payment, Integer> querier, User user, boolean limit) throws Exception {
@@ -367,7 +373,10 @@ public class PaymentService implements IPaymentService {
 		}
 		DeleteBuilder<Payment, Integer> db = paymentDao.deleteBuilder();
 		db.where().in("paymentid", idList);
+		DeleteBuilder<PaymentOrder, Integer> db2 = paymentOrderDao.deleteBuilder();
+        db.where().in("paymentid", idList);
 		paymentDao.delete(db.prepare());
+		paymentOrderDao.delete(db2.prepare());
     }
 
 	@Override
@@ -511,9 +520,15 @@ public class PaymentService implements IPaymentService {
 
 	@Override
 	public void savePaidLog(String orderId, Locale locale) throws Exception {
-		final Payment payment = paymentDao.queryForFirst(paymentDao.queryBuilder().where().eq("orderid", orderId).prepare());
+		Payment payment = paymentDao.queryForFirst(paymentDao.queryBuilder().where().eq("orderid", orderId).prepare());
 		if (payment == null) {
-			throw new CustomerException("payment.message.notExist");
+		    logger.info("*********in savePaidLog, payment == null by orderId ,maybe merged,query agaign by paymentId");
+		    payment = paymentDao.queryForId(Integer.valueOf(orderId.substring(0, orderId.length() - 13)));
+		    if (payment == null) {
+		        throw new CustomerException("payment.message.notExist");
+		    } else {
+		        logger.info("*********in savePaidLog, payment found by paymentId");
+		    }
 		}
 		Date now = new Date();
 		final PaidLog paidLog = new PaidLog();
@@ -521,9 +536,16 @@ public class PaymentService implements IPaymentService {
     	paidLog.setFeeItem(payment.getFeeItem());
     	paidLog.setPrice(payment.getPrice());
     	paidLog.setPaidFee(payment.getPaidFee());
-    	paidLog.setPayDate(now);
+        long orderCount =
+            paymentOrderDao.countOf(paymentOrderDao.queryBuilder().setCountOf(true).where().eq("paymentid", payment.getPaymentId())
+                .prepare());
+        if (orderCount == 0) {
+            paidLog.setPayDate(payment.getLastCheckDate() == null ? now : payment.getLastCheckDate());
+        } else {
+            paidLog.setPayDate(now);
+        }
     	paidLog.setCreatedDate(now);
-    	paidLog.setSerialNo(payment.getOrderId());
+    	paidLog.setSerialNo(orderId);
     	String statDay = DateFormatUtils.format(now, "yyyy-MM-dd", locale);
     	PayStat payStat = payStatDao.queryForFirst(payStatDao.queryBuilder().where().eq("statday", statDay).and().eq("itemid", payment.getFeeItem().getItemId()).prepare());
     	if (payStat == null) {
@@ -538,10 +560,14 @@ public class PaymentService implements IPaymentService {
     	payStat.setLastOrderId(orderId);
     	payStat.setLastPayDate(now);
     	final PayStat fPayStat = payStat;
+    	final Payment fPayment = payment;
+    	final DeleteBuilder<PaymentOrder, Integer> db = paymentOrderDao.deleteBuilder();
+        db.where().eq("paymentid", payment.getPaymentId());
     	TransactionManager.callInTransaction(paymentDao.getConnectionSource(), new Callable<Void>() {
             public Void call() throws Exception {
             	paidLogDao.create(paidLog);
-            	paymentDao.delete(payment);
+            	paymentOrderDao.delete(db.prepare());
+            	paymentDao.delete(fPayment);
             	payStatDao.createOrUpdate(fPayStat);
                 return null;
             }
@@ -568,4 +594,17 @@ public class PaymentService implements IPaymentService {
         }
 		return val;
 	}
+
+    @Override
+    public void savePaymentOrder(PaymentOrder paymentOrder) throws Exception {
+        paymentOrderDao.create(paymentOrder);
+    }
+
+    @Override
+    public PaymentOrder getLastPaymentOrder(Integer paymentId) throws Exception {
+        QueryBuilder<PaymentOrder, Integer> qb = paymentOrderDao.queryBuilder();
+        qb.where().eq("paymentid", paymentId);
+        qb.orderBy("paymentorderid", false);
+        return paymentOrderDao.queryForFirst(qb.prepare());
+    }
 }
