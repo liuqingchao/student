@@ -2,7 +2,7 @@ package net.student.job;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.SQLException;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -15,6 +15,7 @@ import net.student.model.PayStat;
 import net.student.model.Payment;
 import net.student.model.PaymentOrder;
 
+import org.apache.axis2.AxisFault;
 import org.apache.axis2.client.Options;
 import org.apache.axis2.context.MessageContext;
 import org.apache.axis2.transport.http.CommonsTransportHeaders;
@@ -39,8 +40,8 @@ import com.j256.ormlite.misc.TransactionManager;
 import com.j256.ormlite.stmt.DeleteBuilder;
 
 /**
- * 校验账单支付情况
- * @author 果冻
+ * 对账任务
+ * @author liuqingchao
  */
 @Component
 public class PaymentCheckJob {
@@ -58,7 +59,6 @@ public class PaymentCheckJob {
 //    private int time = 0;
 
     @Scheduled(fixedRate = 1000 * 60 * 10)
-    // 每10分钟执行一次
     public void paymentCheck() {
         try {
             List<Payment> payments =
@@ -136,47 +136,132 @@ public class PaymentCheckJob {
             logger.error("backup database failed:", e);
         }
     }
-    @Scheduled(fixedRate = 24*60*60*1000)
-    public void repairData(){
+    @Scheduled(cron = "0 30 23 * * ?")
+    public void checkPaymentByDay() {
+        Date sysdate = new Date();
+        String today = DateFormatUtils.format(sysdate, "yyyy-MM-dd");
         try {
-            int[] paymentIds = new int[2];
-            paymentIds[0] = 10356;
-            paymentIds[1] = 10428;
-            String[] orderIds = new String[]{"103561443176859709","104281443070270366"};
-            String[] paydays = new String[]{"2015-09-25","2015-09-24"};
-            for (int i =0;i<2;i++) {
-                Payment payment = paymentDao.queryForId(paymentIds[i]);
-                if (payment == null) {
-                    continue;
-                }
-                PaidLog paidLog = new PaidLog();
-                paidLog.setStudent(payment.getStudent());
-                paidLog.setFeeItem(payment.getFeeItem());
-                paidLog.setPrice(payment.getPrice());
-                paidLog.setPaidFee(payment.getPaidFee());
-                paidLog.setPayDate(payment.getLastCheckDate() == null ? payment.getCreatedDate() : payment.getLastCheckDate());
-                paidLog.setCreatedDate(new Date());
-                paidLog.setSerialNo(orderIds[i]);
-                PayStat payStat =
-                    payStatDao.queryForFirst(payStatDao.queryBuilder().where().eq("statday", paydays[i]).and()
-                        .eq("itemid", payment.getFeeItem().getItemId()).prepare());
-                if (payStat == null) {
-                    payStat = new PayStat();
-                    payStat.setStatDay(paydays[i]);
-                    payStat.setFeeItemId(payment.getFeeItem().getItemId());
-                    payStat.setCount(0);
-                    payStat.setAmount(0L);
-                }
-                payStat.setCount(payStat.getCount() + 1);
-                payStat.setAmount(payStat.getAmount() + payment.getPrice() - payment.getPaidFee());
-                paidLogDao.create(paidLog);
-                paymentDao.delete(payment);
-                payStatDao.createOrUpdate(payStat);
+            List<Payment> payments = paymentDao.query(paymentDao.queryBuilder().setCountOf(false).where().isNotNull("orderid").and()
+                .raw("date(lastcheckdate)='" + today + "'").prepare());
+            if(payments == null || payments.isEmpty()) {
+                return;
             }
-        } catch (SQLException e) {
+            ICBCServiceStub stub = new ICBCServiceStub();
+            Verify verify = new Verify();
+            verify.setClienID(Constants.WEBSERVICE_CLIENTID);
+            verify.setPasswrd(Constants.WEBSERVICE_PASSWORD);
+            VerifyResponse res = stub.verify(verify);
+            if (res.getVerifyResult()) {
+                MessageContext msgCtx =
+                    stub._getServiceClient().getLastOperationContext()
+                        .getMessageContext(WSDLConstants.MESSAGE_LABEL_IN_VALUE);
+                CommonsTransportHeaders cth =
+                    (CommonsTransportHeaders) msgCtx.getProperty(MessageContext.TRANSPORT_HEADERS);
+                String cookie = (String) cth.get("Set-Cookie");
+                List<Object> list = new ArrayList<Object>();
+                Header header = new Header();
+                header.setName("Cookie");
+                header.setValue(cookie);
+                list.add(header);
+                Options options = stub._getServiceClient().getOptions();
+                options.setProperty(HTTPConstants.HTTP_HEADERS, list);
+                stub._getServiceClient().setOptions(options);
+                for (Payment payment : payments) {
+                    GetPayInfo getPayInfo = new GetPayInfo();
+                    getPayInfo.setOrderID(payment.getOrderId());
+                    GetPayInfoResponse getPayInfoResponse = stub.getPayInfo(getPayInfo);
+                    logger.info("*********in job, paymentByDay[" + payment.getPaymentId() + "], orderId["+payment.getOrderId()+"] check payinfo = "
+                        + (getPayInfoResponse.getGetPayInfoResult()));
+                    if (getPayInfoResponse.getGetPayInfoResult()) {
+                        savePaid(payment, payment.getOrderId());
+                        logger.info("*********in job, paymentByDay[" + payment.getPaymentId() + "] succeed");
+                    } else {
+                        List<PaymentOrder> orderList = paymentOrderDao.queryForEq("paymentid", payment.getPaymentId());
+                        logger.info("*********in job, when paymentByDay[" + payment.getPaymentId() + "] check payinfo = false, check payment order list");
+                        if (orderList != null && !orderList.isEmpty()) {
+                            for (PaymentOrder paymentOrder : orderList) {
+                                GetPayInfo getSubPayInfo = new GetPayInfo();
+                                getSubPayInfo.setOrderID(paymentOrder.getOrderId());
+                                GetPayInfoResponse getSubPayInfoResponse = stub.getPayInfo(getSubPayInfo);
+                                logger.info("*********in job, in paymentByDay order list payment[" + payment.getPaymentId() + "], orderId["+paymentOrder.getOrderId()+"] check payinfo = "
+                                    + (getSubPayInfoResponse.getGetPayInfoResult()));
+                                if (getSubPayInfoResponse.getGetPayInfoResult()) {
+                                    savePaid(payment, paymentOrder.getOrderId());
+                                    logger.info("*********in job, paymentByDay[" + payment.getPaymentId() + "] succeed by payment order list");
+                                    break;
+                                }
+                            }
+                        } else {
+                            logger.info("*********in job, paymentByDay[" + payment.getPaymentId() + "] has no payment order list");
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
             e.printStackTrace();
+            logger.error("************in job paymentByDay failed", e);
         }
+        
     }
+//    @Scheduled(fixedRate = 24*60*60*1000)
+//    public void repairData(){
+//        try {
+//            int[] paymentIds = new int[15];
+//            paymentIds[0] = 29138;
+//            paymentIds[1] = 37027;
+//            paymentIds[2] = 42582;
+//            paymentIds[3] = 42023;
+//            paymentIds[4] = 38749;
+//            paymentIds[5] = 44563;
+//            paymentIds[6] = 37563;
+//            paymentIds[7] = 19417;
+//            paymentIds[8] = 36715;
+//            paymentIds[9] = 36492;
+//            paymentIds[10] = 35642;
+//            paymentIds[11] = 35995;
+//            paymentIds[12] = 29037;
+//            paymentIds[13] = 35994;
+//            paymentIds[14] = 35978;
+//            String[] orderIds = new String[]{"291381448513433484","370271448513687281","425821448513760171",
+//                "420231448513698843","387491448514171202","445631448542194890","375631448548019171",
+//                "194171448585412140","367151448598871296","364921448599621484","356421448600262515",
+//                "359951448600579577","290371448618759718","359941448619042015","359781448629533109"};
+//            String[] paydays = new String[]{"2015-11-26","2015-11-26","2015-11-26","2015-11-26","2015-11-26",
+//                "2015-11-26","2015-11-26","2015-11-26","2015-11-27","2015-11-27","2015-11-27","2015-11-27",
+//                "2015-11-27","2015-11-27","2015-11-27"};
+//            for (int i =0;i<2;i++) {
+//                Payment payment = paymentDao.queryForId(paymentIds[i]);
+//                if (payment == null) {
+//                    continue;
+//                }
+//                PaidLog paidLog = new PaidLog();
+//                paidLog.setStudent(payment.getStudent());
+//                paidLog.setFeeItem(payment.getFeeItem());
+//                paidLog.setPrice(payment.getPrice());
+//                paidLog.setPaidFee(payment.getPaidFee());
+//                paidLog.setPayDate(payment.getLastCheckDate() == null ? payment.getCreatedDate() : payment.getLastCheckDate());
+//                paidLog.setCreatedDate(new Date());
+//                paidLog.setSerialNo(orderIds[i]);
+//                PayStat payStat =
+//                    payStatDao.queryForFirst(payStatDao.queryBuilder().where().eq("statday", paydays[i]).and()
+//                        .eq("itemid", payment.getFeeItem().getItemId()).prepare());
+//                if (payStat == null) {
+//                    payStat = new PayStat();
+//                    payStat.setStatDay(paydays[i]);
+//                    payStat.setFeeItemId(payment.getFeeItem().getItemId());
+//                    payStat.setCount(0);
+//                    payStat.setAmount(0L);
+//                }
+//                payStat.setCount(payStat.getCount() + 1);
+//                payStat.setAmount(payStat.getAmount() + payment.getPrice() - payment.getPaidFee());
+//                paidLogDao.create(paidLog);
+//                paymentDao.delete(payment);
+//                payStatDao.createOrUpdate(payStat);
+//            }
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//        }
+//    }
     
     private void savePaid(Payment payment, String orderId) throws Exception {
         Date now = new Date();
@@ -220,39 +305,39 @@ public class PaymentCheckJob {
     }
     
     public static void main(String[] args) {
-//        try {
-//            ICBCServiceStub stub = new ICBCServiceStub();
-//            Verify verify = new Verify();
-//            verify.setClienID(Constants.WEBSERVICE_CLIENTID);
-//            verify.setPasswrd(Constants.WEBSERVICE_PASSWORD);
-//            VerifyResponse res = stub.verify(verify);
-//            if (res.getVerifyResult()) {
-//                MessageContext msgCtx =
-//                    stub._getServiceClient().getLastOperationContext()
-//                        .getMessageContext(WSDLConstants.MESSAGE_LABEL_IN_VALUE);
-//                CommonsTransportHeaders cth =
-//                    (CommonsTransportHeaders) msgCtx.getProperty(MessageContext.TRANSPORT_HEADERS);
-//                String cookie = (String) cth.get("Set-Cookie");
-//                List<Object> list = new ArrayList<Object>();
-//                Header header = new Header();
-//                header.setName("Cookie");
-//                header.setValue(cookie);
-//                list.add(header);
-//                Options options = stub._getServiceClient().getOptions();
-//                options.setProperty(HTTPConstants.HTTP_HEADERS, list);
-//                stub._getServiceClient().setOptions(options);
-//                GetPayInfo getPayInfo = new GetPayInfo();
-//                getPayInfo.setOrderID("5271442489468557");
-//                GetPayInfoResponse getPayInfoResponse = stub.getPayInfo(getPayInfo);
-//                System.out.println("*********" + getPayInfoResponse.getGetPayInfoResult());
-//            }
-//        } catch (AxisFault e) {
-//            e.printStackTrace();
-//        } catch (RemoteException e) {
-//            e.printStackTrace();
-//        }
+        try {
+            ICBCServiceStub stub = new ICBCServiceStub();
+            Verify verify = new Verify();
+            verify.setClienID(Constants.WEBSERVICE_CLIENTID);
+            verify.setPasswrd(Constants.WEBSERVICE_PASSWORD);
+            VerifyResponse res = stub.verify(verify);
+            if (res.getVerifyResult()) {
+                MessageContext msgCtx =
+                    stub._getServiceClient().getLastOperationContext()
+                        .getMessageContext(WSDLConstants.MESSAGE_LABEL_IN_VALUE);
+                CommonsTransportHeaders cth =
+                    (CommonsTransportHeaders) msgCtx.getProperty(MessageContext.TRANSPORT_HEADERS);
+                String cookie = (String) cth.get("Set-Cookie");
+                List<Object> list = new ArrayList<Object>();
+                Header header = new Header();
+                header.setName("Cookie");
+                header.setValue(cookie);
+                list.add(header);
+                Options options = stub._getServiceClient().getOptions();
+                options.setProperty(HTTPConstants.HTTP_HEADERS, list);
+                stub._getServiceClient().setOptions(options);
+                GetPayInfo getPayInfo = new GetPayInfo();
+                getPayInfo.setOrderID("359781448629533109");
+                GetPayInfoResponse getPayInfoResponse = stub.getPayInfo(getPayInfo);
+                System.out.println("*********" + getPayInfoResponse.getGetPayInfoResult());
+            }
+        } catch (AxisFault e) {
+            e.printStackTrace();
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
 //        File file = new File("f:/export_paidlog_20150928112924.xls");
-//        File file2 = new File("f:/信息中心数据.xls");
+//        File file2 = new File("f:/淇℃伅涓績鏁版嵁.xls");
 //        try {
 //            InputStream is = FileUtils.openInputStream(file);
 //            InputStream is2 = FileUtils.openInputStream(file2);
@@ -273,9 +358,9 @@ public class PaymentCheckJob {
 //                HSSFRow row = sh2.getRow(j);
 //                HSSFCell cell = row.getCell(0);
 ////                String ss = cell.getStringCellValue();
-////                String orderId = ss.substring(25, ss.indexOf("用途")).trim();
+////                String orderId = ss.substring(25, ss.indexOf("鐢ㄩ��")).trim();
 //                if (!orderList.contains(cell.getStringCellValue())) {
-//                    System.out.println("第"+(j+1)+"行，" + cell.getStringCellValue());
+//                    System.out.println("绗�"+(j+1)+"琛岋紝" + cell.getStringCellValue());
 //                }
 //            }
 //            wb.close();
